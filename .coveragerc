@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = healing
+omit = healing/tests/*,healing/openstack/*
+
+[report]
+ignore-errors = True
