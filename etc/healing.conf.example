@@ -1,0 +1,51 @@
+[DEFAULT]
+# Show more verbose log output (sets INFO log level output)
+verbose = True
+
+#
+
+debug = True
+
+# Log to this file
+log_file = /tmp/healing.log
+
+# Log levels for specific modules
+default_log_levels = mistral=DEBUG,mistral.api=DEBUG,wsme=DEBUG
+
+# Rabbit config for oslo.messaging
+rabbit_host = localhost
+rabbit_port = 5672
+rabbit_virtual_host = /
+rabbit_task_queue = tasks
+rabbit_user = guest
+rabbit_password = guest
+
+#log_config_append = etc/logging.conf
+
+# Options for oslo.messaging
+#rpc_backend=rabbit
+
+[api]
+host = 0.0.0.0
+port = 9999
+unauthorized_urls = /v1/handlers/,
+
+[pecan]
+auth_enable = False
+debug = True 
+
+[database]
+#A valid SQLAlchemy connection string
+#connection = mysql://root:intel123@localhost:3306/healing
+connection = sqlite:///healing.sqlite
+
+[keystone]
+auth_uri=http://localhost:5000/v2.0/
+auth_host=localhost
+auth_port=5000
+admin_user=admin
+admin_password=intel123
+auth_protocol=http
+admin_tenant_name=admin
+#algunas urls no necesitan pass
+delay_auth_decision=true

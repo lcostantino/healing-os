@@ -1,0 +1,10 @@
+run script with evacuate name so it can be configured?
+normalizar los datos? setear eso en plugin for metadata?
+poner jsonschema ! aplicar despues
+
+
+- why objects don use straight sqlalchemy for save? uness we want to support another BE , we can switch and avoid queries
+
+- updated_at not right in sqlite, test mysql. if we add fields in objects it should be fixed
+- add actionlist
+
