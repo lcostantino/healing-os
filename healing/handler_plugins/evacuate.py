@@ -21,7 +21,9 @@ class Evacuate(base.HandlerPluginBase):
     TIME_FOR_NEXT_ACTION = 10 * 60
 
     def start(self, ctx, data):
-        """ do something...  spawn thread?"""
+        """ do something...  spawn thread?
+            :param data ActionData Object
+        """
         if not self.can_execute(data):
             LOG.debug("Cannot execute. Other task in progress or time?")
             return False
@@ -43,11 +45,14 @@ class Evacuate(base.HandlerPluginBase):
         return False
 
     def can_execute(self, data):
+        """
+        :param data ActionData Obj
+        """
         #use updated_at to move the logic to db instead of doing it in code
         # tHROW CannotExecuteExceptio and proper error in hook
         try:
             self.last_action = action_obj.Action.get_by_name_and_target(self.NAME,
-                                                 data['target_resource'])
+                                                 data.target_resource)
         except exceptions.NotFoundException:
             LOG.debug("no action found. continue")
             return True

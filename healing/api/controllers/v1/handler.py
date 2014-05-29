@@ -47,7 +47,6 @@ class Handlers(resource.Resource):
 
 
 class HandlersController(rest.RestController):
-
     @wsme_pecan.wsexpose(Handlers)
     def get_all(self):
         LOG.debug("Fetch handlers plugins")
@@ -57,6 +56,10 @@ class HandlersController(rest.RestController):
                     for values in manager.plugin_list()]
 
         return Handlers(handlers=handlers)
+
+    @wsme_pecan.wsexpose(None, wtypes.text, wtypes.text, wtypes.text)
+    def get(self, name, target_resource, source='custom'):
+        return self.post(name, source, target_resource, None)
 
     # TODO:cannot coerce body right now, wtypes not supported and want
     # dynamic...
@@ -82,10 +85,10 @@ class HandlersController(rest.RestController):
         #source converter(source, extra_data, headers)
 
         #TODO: normalize data in object?
-
         action_data = conversor.format(name, data,
-                                       target_resource=target_resource
+                                       target_resource=target_resource,
                                        headers=pecan.request.headers)
+        LOG.debug(action_data)
         #TODO: Retrieve context if token in header from middleware
         #Should be done on authorization? If not provided used admin
         #build context should not call authorize in that case

@@ -48,7 +48,7 @@ def setup_app(pecan_config=None, transport=None):
     #TODO; pasar db hook?
     app_hooks = [hooks.ConfigHook(),
                  hooks.TranslationHook(),
-                 access_control.ErrorHook(),
+                 hooks.ErrorHook(),
                  ]
     #if config.CONF.pecan.auth_enable:
     app_hooks.append(access_control.DelayedAuthHook())

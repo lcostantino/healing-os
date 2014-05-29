@@ -1,6 +1,7 @@
 import abc
 from healing.openstack.common import jsonutils
 from healing import exceptions
+from healing.handler_plugins.base import ActionData
 
 class FormatterBase(object):
     """Format data based on source
@@ -28,14 +29,15 @@ class CustomFormatter(FormatterBase):
 
     def format(self, name, data, target_resource=None, headers=None):
         #expect target_resource in action_meta
-        target_resource = target_resource or data.get('target_resource')
-        if not target_resource:
-            raise Exception('Missing mandatory data')
+        if data and not target_resource:
+            target_resource = data.get('target_resource')
 
-        action_data = {'name': name,
-                       'source': self.SOURCE,
-                       'target_resource': target_resource,
-                        'action_meta': {'headers': {},
-                                        'data': data}}
+        if not target_resource:
+            raise  exceptions.InvalidDataException('Missing target')
+
+        return ActionData(name, source=self.SOURCE,
+                          target_resource=target_resource,
+                          data=data, headers={})
+
         return action_data
 

@@ -55,3 +55,12 @@ class TranslationHook(hooks.PecanHook):
         if hasattr(state.response, 'translatable_error'):
             self.local_error.translatable_error = (
                 state.response.translatable_error)
+
+
+class ErrorHook(hooks.PecanHook):
+    def on_error(self, state, exc):
+        if isinstance(exc, exceptions.AuthorizationException):
+            return webob.Response('Not Authorized', status=401)
+        if isinstance(exc, exceptions.InvalidDataException):
+            return webob.Response(exc.message, status=500)
+

@@ -4,6 +4,20 @@ from healing.db import api as db_api
 from healing.openstack.common import jsonutils
 from healing.objects import action as action_obj
 
+class ActionData(object):
+    def __init__(self, name, target_resource, source='custom',
+                 data=None, headers=None):
+        self.name = name
+        self.target_resource = target_resource
+        self.source = source
+        self.action_meta = {'headers': headers,
+                            'data': data}
+
+    def __str__(self):
+        return "ActionData {0}|{1}|{2}|{3}".format(self.name, self.source,
+                                                   self.target_resource,
+                                                   self.action_meta)
+
 class HandlerPluginBase(object):
     """Base class for handlers plugins
     """
@@ -40,8 +54,8 @@ class HandlerPluginBase(object):
         #TODO: move to objects
         action = action_obj.Action()
         action.name = self.NAME
-        action.action_meta_obj = data.get('action_meta', {})
-        action.target_id = data['target_resource']
+        action.action_meta_obj = data.action_meta or {}
+        action.target_id = data.target_resource
         action.status = action_obj.ACTION_STARTED
         self.current_action = action.create()
 #get_name mandatory?

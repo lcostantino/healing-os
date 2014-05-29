@@ -18,6 +18,7 @@
 
 #TODO: es mejor el formaato de nova exceptions , pasarlo aca
 
+
 class HealingException(Exception):
     """Base Exception for the project
 
@@ -51,6 +52,7 @@ class NotFoundException(HealingException):
         if message:
             self.message = message
 
+
 class InvalidSourceException(HealingException):
     message = "Source formatter invalid"
 
@@ -82,6 +84,16 @@ class ActionException(HealingException):
 class InvalidActionException(HealingException):
     def __init__(self, message=None):
         super(InvalidActionException, self).__init__(message)
+        if message:
+            self.message = message
+
+
+class InvalidDataException(HealingException):
+    message = "Invalid action data"
+    code = "INVALID_ACTION_DATA"
+
+    def __init__(self, message=None):
+        super(InvalidDataException, self).__init__(message)
         if message:
             self.message = message
 
