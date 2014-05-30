@@ -13,6 +13,11 @@ LOG = logging.getLogger(__name__)
 
 class Evacuate(base.HandlerPluginBase):
     """evacuate host plugin.
+
+    Data format in action_meta is:
+
+           'evacuate_vm': True  if evacuating a vm in target_resource,
+           if not the entire host will be evacuated
     """
     DESCRIPTION = "evacuate"
     NAME = "evacuate"
@@ -25,15 +30,14 @@ class Evacuate(base.HandlerPluginBase):
             :param data ActionData Object
         """
         if not self.can_execute(data):
-            LOG.debug("Cannot execute. Other task in progress or time?")
-            return False
+            raise exceptions.ActionInProgress()
 
         self._register_action(data)
         client = utils.get_nova_client(ctx)
         print client.servers.list()
-
+        return self.current_action.id
         #do background? return id?
-        print data
+
         return True
 
     def stop(self, data, error=False):
@@ -47,25 +51,6 @@ class Evacuate(base.HandlerPluginBase):
     def can_execute(self, data):
         """
         :param data ActionData Obj
+        move to parent?
         """
-        #use updated_at to move the logic to db instead of doing it in code
-        # tHROW CannotExecuteExceptio and proper error in hook
-        try:
-            self.last_action = action_obj.Action.get_by_name_and_target(self.NAME,
-                                                 data.target_resource)
-        except exceptions.NotFoundException:
-            LOG.debug("no action found. continue")
-            return True
-
-        if self.last_action.status == action_obj.ACTION_ERROR:
-            LOG.debug("Action was in error state, continue")
-            return True
-        # nova should take care of the real status, won't be able to migrate/
-        # evacuate twice even if running and job lost
-        if not timeutils.is_older_than(self.last_action.created_at,
-                                   self.TIME_FOR_NEXT_ACTION):
-            LOG.debug("Action is not older than expected time and running")
-            return False
-        LOG.debug("Last Action for this handler: %s"  %  self.last_action.id)
-
-        return True
+        return super(Evacuate, self).can_execute(data)

@@ -16,6 +16,8 @@
 import sys
 import sqlalchemy as sa
 
+from sqlalchemy.sql.expression import desc
+
 from healing import config
 from healing import exceptions as exc
 from healing.db.sqlalchemy import model_base as base
@@ -80,6 +82,14 @@ def to_dict(func):
 
     return decorator
 
+def get_order(order):
+    """Get desc/asc based on -name/name."""
+    if not order:
+        return order
+
+    if order[0] == '-':
+        return order[1:] + ' DESC'
+    return order
 
 def model_query(model, session=None):
     """Query helper.
@@ -150,7 +160,7 @@ def actions_get_all(filters=None):
 
 def _actions_get_all(filters, order='-created_at'):
     query = model_query(m.Action)
-    return query.filter_by(**filters).order_by(order).all()
+    return query.filter_by(**filters).order_by(get_order(order)).all()
 
 
 def action_get_by_filter(filters, updated_time_gt=None, order='-created_at'):
@@ -162,7 +172,7 @@ def action_get_by_filter(filters, updated_time_gt=None, order='-created_at'):
     if updated_time_gt:
         query = query.filter((m.Action.updated_at >= updated_time_gt) |
                              (m.Action.create_at >= updated_time_gt))
-    result = query.order_by(order).first()
+    result = query.order_by(get_order(order)).first()
     if not result:
         raise exc.NotFoundException()
     return result

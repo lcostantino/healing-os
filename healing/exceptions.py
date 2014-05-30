@@ -14,10 +14,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-#import healing.openstack.common.exception as ex
-
-#TODO: es mejor el formaato de nova exceptions , pasarlo aca
-
+# TODO: es mejor el formaato de nova exceptions , pasarlo aca
+# BaseNovaException
 
 class HealingException(Exception):
     """Base Exception for the project
@@ -25,84 +23,56 @@ class HealingException(Exception):
     To correctly use this class, inherit from it and define
     a 'message' and 'code' properties.
     """
-    message = "An unknown exception occurred"
-    code = "UNKNOWN_EXCEPTION"
+    GENERIC_MESSAGE = "An unknown exception occurred"
+    code = "HEALING_EXCEPTION"
+    return_code = 500
 
     def __str__(self):
         return self.message
 
-    def __init__(self, message=message):
+    def __init__(self, message=GENERIC_MESSAGE):
         self.message = message
         super(HealingException, self).__init__(
             '%s: %s' % (self.code, self.message))
 
 
 class DataAccessException(HealingException):
-    def __init__(self, message=None):
-        super(DataAccessException, self).__init__(message)
-        if message:
-            self.message = message
+    message= "Data access exception"
 
 
 class NotFoundException(HealingException):
     message = "Object not found"
 
-    def __init__(self, message=None):
-        super(NotFoundException, self).__init__(message)
-        if message:
-            self.message = message
-
 
 class InvalidSourceException(HealingException):
     message = "Source formatter invalid"
-
-    def __init__(self, message=None):
-        super(NotFoundException, self).__init__(message)
-        if message:
-            self.message = message
 
 
 class DBDuplicateEntry(HealingException):
     message = "Database object already exists"
     code = "DB_DUPLICATE_ENTRY"
 
-    def __init__(self, message=None):
-        super(DBDuplicateEntry, self).__init__(message)
-        if message:
-            self.message = message
-
 
 class ActionException(HealingException):
     code = "ACTION_ERROR"
 
-    def __init__(self, message=None):
-        super(HealingException, self).__init__(message)
-        if message:
-            self.message = message
-
 
 class InvalidActionException(HealingException):
-    def __init__(self, message=None):
-        super(InvalidActionException, self).__init__(message)
-        if message:
-            self.message = message
+    message = "Invalid Action Exception"
+    code = "INVALID_ACTION"
 
 
 class InvalidDataException(HealingException):
     message = "Invalid action data"
     code = "INVALID_ACTION_DATA"
 
-    def __init__(self, message=None):
-        super(InvalidDataException, self).__init__(message)
-        if message:
-            self.message = message
-
 
 class AuthorizationException(HealingException):
     message = "Invalid credentials / token"
     code = "INVALID_AUTH"
 
-    def __init__(self, message=None):
-        super(AuthorizationException, self).__init__(message)
-        if message:
-            self.message = message
+
+class ActionInProgress(HealingException):
+    message = "Action in progress or in time range"
+    code = 'ACTION_IN_PROGRESS'
+    return_code = 202

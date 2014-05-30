@@ -32,7 +32,7 @@ unauthorized_urls = /v1/handlers/,
 
 [pecan]
 auth_enable = False
-debug = True 
+debug = True
 
 [database]
 #A valid SQLAlchemy connection string
