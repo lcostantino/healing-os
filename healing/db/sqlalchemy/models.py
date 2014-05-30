@@ -52,4 +52,19 @@ class Action(mb.HealingBase):
     internal_data = sa.Column(sa.String(200), nullable=True)
 
 
+class SLAContract(mb.HealingBase):
+    """Contains info about the SLA contracts."""
+
+    __tablename__ = 'sla_contract'
+
+    __table_args__ = (
+        sa.UniqueConstraint('id'),
+    )
+
+    id = _id_column()
+    project_id = sa.Column(sa.String(80), nullable=True)
+    type = sa.Column(sa.String(255), nullable=True)
+    value = sa.Column(sa.String(255), nullable=True)
+
+
 
