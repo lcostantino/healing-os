@@ -20,6 +20,7 @@ import wsmeext.pecan as wsme_pecan
 
 from healing.api.controllers.v1 import handler
 from healing.api.controllers.v1 import action
+from healing.api.controllers.v1 import sla
 from healing.api.controllers import resource
 
 
@@ -43,3 +44,4 @@ class Controller(object):
 
     handlers = handler.HandlersController()
     actions = action.ActionsController()
+    sla = sla.SLAController()

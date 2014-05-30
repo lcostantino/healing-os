@@ -176,3 +176,34 @@ def _action_get(action_id):
     return obj
 
 #setup_db()
+
+def sla_contract_get_by_project(project):
+    query = model_query(m.SLAContract)
+    return query.filter_by(project_id=project).all()
+
+
+def sla_contract_update(project, type, value):
+    query = model_query(m.SLAContract)
+    result = query.filter_by(project_id=project).filter_by(type=type).first()
+
+    if not result:
+        values = dict(project_id=project, type=type, value=value)
+        sla_contract_create(values)
+    else:
+        result.update(value=value)
+
+
+def sla_contract_create(values):
+    #TODO: move to @session_aware
+    session = get_session()
+    with session.begin():
+        contract = m.SLAContract()
+        contract.update(values.copy())
+
+        try:
+            contract.save(session=get_session())
+        except db_exc.DBDuplicateEntry as e:
+            raise exc.DBDuplicateEntry("Duplicate entry for contract: %s"
+                                       % e.columns)
+
+        return contract
