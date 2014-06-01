@@ -6,6 +6,8 @@ prepare in the future for real object<>rpc/db versioning
 #TODO: Add action state
 import datetime
 
+from healing.objects import base
+from healing.objects import fields
 from healing.db import api as db_api
 from healing.openstack.common import jsonutils
 
@@ -16,31 +18,22 @@ ACTION_FINISHED = 'finished' #mean sucess..
 ACTION_ERROR = 'error'
 
 
-class Action(object):
+class Action(base.HealingPersistentObject, base.HealingObject):
+    VERSION = "1.0"
     # no coercion rigth now, in place if we move to objects
-    fields = {'id': None,
-              'name': None,
-              'source': None,
-              'status': None,
-              'action_meta': None,
-              'target_id': None,
-              'project_id': None,
-              'updated_at': None, #datetime.datetime.utcnow(),
-              'created_at': None, #datetime.datetime.utcnow(),
-              'internal_data': None}
-
-    def __init__(self):
-        # The metaclass should add the fiels to the object dict , since its
-        # not ready, hack it.
-        self.__dict__.update(self.fields)
+    fields = {'id': fields.StringField(),
+              'name': fields.StringField(),
+              'status': fields.StringField(),
+              'action_meta': fields.StringField(nullable=True),
+              'target_id': fields.StringField(),
+              'project_id': fields.StringField(nullable=True),
+              "internal_data": fields.StringField(nullable=True)}
 
     @staticmethod
     def _from_db_object(action, db_action):
-        fields = set(action.fields)
-        for key in fields:
-            # TODO: add object assign
-            #action[key] = db_action[key]
-            setattr(action, key, db_action[key])
+        for key in action.fields:
+            action[key] = db_action[key]
+        action.obj_reset_changes()
         return action
 
     @classmethod
@@ -93,27 +86,22 @@ class Action(object):
         self.status = ACTION_ERROR
 
     def create(self):
-        if getattr(self, 'id'):
+        if self.obj_attr_is_set('id'):
             # TODO: add proper exception
             raise Exception('alredy created')
-        #this is done by base class in the future... check nova objects
-        updates = {}
-        for i in self.fields:
-            updates[i] = getattr(self, i)
+        updates = self.obj_get_changes()
         updates.pop('id', None)
         db_action = db_api.action_create(updates)
-        return self._from_db_object( self, db_action)
+        return self._from_db_object(self, db_action)
 
     def save(self):
         # this is done by base class in the future... check nova objects
         # ideally, we should track what actually changed
-        updates = {}
-        for i in self.fields:
-            updates[i] = getattr(self, i, None)
+        updates = self.obj_get_changes()
         updates.pop('id', None)
         # we won't get updated_at updated here, but...
         db_action = db_api.action_update(self.id, updates)
-        return self._from_db_object( self, db_action)
+        return self._from_db_object(self, db_action)
 
 
 

@@ -44,7 +44,6 @@ class Action(mb.HealingBase):
 
     id = _id_column()
     name = sa.Column(sa.String(80))
-    source = sa.Column(sa.String(40))
     status = sa.Column(sa.String(20), nullable=True, default='init')
     action_meta = sa.Column(sa.String(200), nullable=True)
     target_id = sa.Column(sa.String(80))

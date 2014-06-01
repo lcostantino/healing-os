@@ -49,3 +49,6 @@ auth_protocol=http
 admin_tenant_name=admin
 #algunas urls no necesitan pass
 delay_auth_decision=true
+
+[plugins]
+plugin_config_file=plugins_config.yaml

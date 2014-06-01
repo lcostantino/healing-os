@@ -40,6 +40,11 @@ pecan_opts = [
     cfg.BoolOpt('auth_enable', default=True)
 ]
 
+plugin_opts = [
+    cfg.StrOpt('plugins_config_file',
+               default="plugins_config.yaml",
+               help="plugins config file."),
+]
 db_opts = []
 
 
@@ -49,6 +54,7 @@ CONF.register_opts(api_opts, group='api')
 CONF.register_opts(pecan_opts, group='pecan')
 CONF.register_opts(auth_token.opts, group='keystone')
 CONF.register_opts(db_opts, group='database')
+CONF.register_opts(plugin_opts, group='plugins')
 
 CONF.import_opt('verbose', 'healing.openstack.common.log')
 CONF.import_opt('debug', 'healing.openstack.common.log')

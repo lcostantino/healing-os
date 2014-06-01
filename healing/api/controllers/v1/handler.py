@@ -69,7 +69,8 @@ class HandlersController(rest.RestController):
         LOG.debug('POST plugin ' + name + ':' + source + ':')
         manager = get_plugin_handler()
         try:
-            plugin = manager.get_plugin(name)
+            plugin = manager.check_plugin_name(name)
+
             conversor = data_convert.FormatterBase.get_formatter(source)
 
         except exceptions.InvalidSourceException as e:
@@ -92,7 +93,6 @@ class HandlersController(rest.RestController):
         #Should be done on authorization? If not provided used admin
         #build context should not call authorize in that case
         ctx = utils.build_context(None, True)
-        ms = plugin()
-        return {'action_id': ms.start(ctx, action_data)}
+        return {'action_id': manager.start_plugin(name, ctx=ctx, data=action_data)}
 
 

@@ -21,9 +21,6 @@ class Evacuate(base.HandlerPluginBase):
     """
     DESCRIPTION = "evacuate"
     NAME = "evacuate"
-    # if there's an action blahbla exeuted in this range,
-    # ignore the request
-    TIME_FOR_NEXT_ACTION = 10 * 60
 
     def start(self, ctx, data):
         """ do something...  spawn thread?
@@ -32,25 +29,37 @@ class Evacuate(base.HandlerPluginBase):
         if not self.can_execute(data):
             raise exceptions.ActionInProgress()
 
-        self._register_action(data)
-        client = utils.get_nova_client(ctx)
-        print client.servers.list()
+        self.register_action(data)
+       
+        #poner un with?
+        try:
+            client = utils.get_nova_client(ctx)
+            print client.servers.list()
+        except Exception as e:
+            LOG.exception(e)
+            self.current_action.internal_data_obj.error_msg = e.message
+            self.stop(data, True)
+            return None
+        
+        self.stop(data)
         return self.current_action.id
-        #do background? return id?
+       
 
-        return True
-
-    def stop(self, data, error=False):
+    def stop(self, data, error=False, message=None):
         #this will work if not in thread probably, if we change this
         #add the id to the data and context
-        self.current_action.stop()
+        if error:
+            self.current_action.error()
+        else:
+            self.current_action.stop()
+        
         self.current_action.save()
         LOG.debug("Task stopped")
-        return False
+        
 
-    def can_execute(self, data):
+    def can_execute(self, data, ctx=None):
         """
         :param data ActionData Obj
         move to parent?
         """
-        return super(Evacuate, self).can_execute(data)
+        return super(Evacuate, self).can_execute(data, ctx=ctx)

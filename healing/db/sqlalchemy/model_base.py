@@ -28,7 +28,6 @@ class _HealingBase(oslo_models.ModelBase, oslo_models.TimestampMixin):
 
     def to_dict(self):
         #TODO: remove now
-        print "CALliNg TO DIcT NOt EXPECtD"
         """
         may be removed
         sqlalchemy based automatic to_dict method."""

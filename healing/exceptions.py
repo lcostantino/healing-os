@@ -76,3 +76,13 @@ class ActionInProgress(HealingException):
     message = "Action in progress or in time range"
     code = 'ACTION_IN_PROGRESS'
     return_code = 202
+
+
+class CannotStartPlugin(HealingException):
+    message = "Plugin %(name)s cannot be started"
+    code = 'PLUGIN_ERROR'
+    
+    def __init__(self, name):
+        
+        message = self.message % {'name': name}
+        super(CannotStartPlugin, self).__init__(message=message)

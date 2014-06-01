@@ -1,0 +1,15 @@
+plugins:
+  - name: "evacuate"
+    restrictions:
+      - name: "actionstatus"
+      - name: "timeinterval"
+        config:
+          interval: "1"
+  - name: "*"
+    restrictions:
+      - name: "actionstatus"
+      - name: "timeinterval"
+        config:
+          interval: "1000"
+
+

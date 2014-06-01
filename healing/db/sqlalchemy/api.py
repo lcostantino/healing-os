@@ -68,20 +68,6 @@ def setup_db():
     return True
 
 
-def to_dict(func):
-    def decorator(*args, **kwargs):
-        res = func(*args, **kwargs)
-
-        if isinstance(res, list):
-            return [item.to_dict() for item in res]
-
-        if res:
-            return res.to_dict()
-        else:
-            return None
-
-    return decorator
-
 def get_order(order):
     """Get desc/asc based on -name/name."""
     if not order:
@@ -104,8 +90,6 @@ def model_query(model, session=None):
     return session.query(model)
 
 
-#TODO: pasar a objetos... remover to_dict
-@to_dict
 def action_create(values):
     #TODO: move to @session_aware
     session = get_session()
@@ -114,15 +98,13 @@ def action_create(values):
         action.update(values.copy())
 
         try:
-            action.save(session=get_session())
+            action.save(session)
         except db_exc.DBDuplicateEntry as e:
             raise exc.DBDuplicateEntry("Duplicate entry for Action: %s"
                                        % e.columns)
 
         return action
 
-#TODO: remove to_dict when we implement field coercion
-@to_dict
 def action_update(action_id, values):
     session = get_session()
     with session.begin():
@@ -132,7 +114,7 @@ def action_update(action_id, values):
                                         action_id)
 
         action.update(values.copy())
-
+        action.save(session)
         return action
 
 
@@ -146,12 +128,10 @@ def action_delete(action_id):
                                         action_id)
 
 
-@to_dict
 def action_get(action_id):
     return _action_get(action_id)
 
 
-@to_dict
 def actions_get_all(filters=None):
     if not filters:
         filters = {}
@@ -211,7 +191,7 @@ def sla_contract_create(values):
         contract.update(values.copy())
 
         try:
-            contract.save(session=get_session())
+            contract.save(session)
         except db_exc.DBDuplicateEntry as e:
             raise exc.DBDuplicateEntry("Duplicate entry for contract: %s"
                                        % e.columns)
