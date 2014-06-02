@@ -23,7 +23,7 @@ from healing import config
 from healing.api import hooks
 from healing.api import middleware
 from healing.db import api as db_api
-
+from healing.handler_manager import get_plugin_handler
 
 def get_pecan_config():
     # Set up the pecan configuration.
@@ -48,7 +48,7 @@ def setup_app(pecan_config=None, transport=None):
     #TODO; pasar db hook?
     app_hooks = [hooks.ConfigHook(),
                  hooks.TranslationHook(),
-                 hooks.ErrorHook(),
+                 hooks.CustomErrorHook(),
                  ]
     #if config.CONF.pecan.auth_enable:
     app_hooks.append(access_control.DelayedAuthHook())
@@ -68,5 +68,5 @@ def setup_app(pecan_config=None, transport=None):
 
     # Set up access control.
     app = access_control.setup(app)
-
+    get_plugin_handler()
     return app

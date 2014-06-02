@@ -17,11 +17,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import six
 import threading
 
 from oslo.config import cfg
 from pecan import hooks
 
+from healing import exceptions
 class ConfigHook(hooks.PecanHook):
     """Attach the configuration object to the request
     so controllers can get to it.
@@ -57,10 +59,13 @@ class TranslationHook(hooks.PecanHook):
                 state.response.translatable_error)
 
 
-class ErrorHook(hooks.PecanHook):
+class CustomErrorHook(hooks.PecanHook):
     def on_error(self, state, exc):
+        # i think this is being called if something is wrong
+        # in the middleware only ( maybe use wsme.exception? )
+        # we use our custom decorator anyway
+        # debug must be = FALSE to this to work
         if isinstance(exc, exceptions.AuthorizationException):
             return webob.Response('Not Authorized', status=401)
-        if isinstance(exc, exceptions.InvalidDataException):
-            return webob.Response(exc.message, status=500)
-
+        if isinstance(exc, exceptions.HealingException):
+            return webob.Response(six.text_type(exc), status=exc.return_code)

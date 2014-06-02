@@ -16,6 +16,8 @@
 import sys
 import sqlalchemy as sa
 
+from sqlalchemy.sql.expression import desc
+
 from healing import config
 from healing import exceptions as exc
 from healing.db.sqlalchemy import model_base as base
@@ -66,20 +68,14 @@ def setup_db():
     return True
 
 
-def to_dict(func):
-    def decorator(*args, **kwargs):
-        res = func(*args, **kwargs)
+def get_order(order):
+    """Get desc/asc based on -name/name."""
+    if not order:
+        return order
 
-        if isinstance(res, list):
-            return [item.to_dict() for item in res]
-
-        if res:
-            return res.to_dict()
-        else:
-            return None
-
-    return decorator
-
+    if order[0] == '-':
+        return order[1:] + ' DESC'
+    return order
 
 def model_query(model, session=None):
     """Query helper.
@@ -94,8 +90,6 @@ def model_query(model, session=None):
     return session.query(model)
 
 
-#TODO: pasar a objetos... remover to_dict
-@to_dict
 def action_create(values):
     #TODO: move to @session_aware
     session = get_session()
@@ -104,15 +98,13 @@ def action_create(values):
         action.update(values.copy())
 
         try:
-            action.save(session=get_session())
+            action.save(session)
         except db_exc.DBDuplicateEntry as e:
             raise exc.DBDuplicateEntry("Duplicate entry for Action: %s"
                                        % e.columns)
 
         return action
 
-#TODO: remove to_dict when we implement field coercion
-@to_dict
 def action_update(action_id, values):
     session = get_session()
     with session.begin():
@@ -122,7 +114,7 @@ def action_update(action_id, values):
                                         action_id)
 
         action.update(values.copy())
-
+        action.save(session)
         return action
 
 
@@ -136,12 +128,10 @@ def action_delete(action_id):
                                         action_id)
 
 
-@to_dict
 def action_get(action_id):
     return _action_get(action_id)
 
 
-@to_dict
 def actions_get_all(filters=None):
     if not filters:
         filters = {}
@@ -150,7 +140,7 @@ def actions_get_all(filters=None):
 
 def _actions_get_all(filters, order='-created_at'):
     query = model_query(m.Action)
-    return query.filter_by(**filters).order_by(order).all()
+    return query.filter_by(**filters).order_by(get_order(order)).all()
 
 
 def action_get_by_filter(filters, updated_time_gt=None, order='-created_at'):
@@ -162,7 +152,7 @@ def action_get_by_filter(filters, updated_time_gt=None, order='-created_at'):
     if updated_time_gt:
         query = query.filter((m.Action.updated_at >= updated_time_gt) |
                              (m.Action.create_at >= updated_time_gt))
-    result = query.order_by(order).first()
+    result = query.order_by(get_order(order)).first()
     if not result:
         raise exc.NotFoundException()
     return result
@@ -210,7 +200,7 @@ def sla_contract_create(values):
         contract.update(values.copy())
 
         try:
-            contract.save(session=get_session())
+            contract.save(session)
         except db_exc.DBDuplicateEntry as e:
             raise exc.DBDuplicateEntry("Duplicate entry for contract: %s"
                                        % e.columns)

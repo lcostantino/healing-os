@@ -13,59 +13,53 @@ LOG = logging.getLogger(__name__)
 
 class Evacuate(base.HandlerPluginBase):
     """evacuate host plugin.
+
+    Data format in action_meta is:
+
+           'evacuate_vm': True  if evacuating a vm in target_resource,
+           if not the entire host will be evacuated
     """
     DESCRIPTION = "evacuate"
     NAME = "evacuate"
-    # if there's an action blahbla exeuted in this range,
-    # ignore the request
-    TIME_FOR_NEXT_ACTION = 10 * 60
 
     def start(self, ctx, data):
         """ do something...  spawn thread?
             :param data ActionData Object
         """
         if not self.can_execute(data):
-            LOG.debug("Cannot execute. Other task in progress or time?")
-            return False
+            raise exceptions.ActionInProgress()
 
-        self._register_action(data)
-        client = utils.get_nova_client(ctx)
-        print client.servers.list()
+        self.register_action(data)
+       
+        #poner un with?
+        try:
+            client = utils.get_nova_client(ctx)
+            print client.servers.list()
+        except Exception as e:
+            LOG.exception(e)
+            self.current_action.internal_data_obj.error_msg = e.message
+            self.stop(data, True)
+            return None
+        
+        self.stop(data)
+        return self.current_action.id
+       
 
-        #do background? return id?
-        print data
-        return True
-
-    def stop(self, data, error=False):
+    def stop(self, data, error=False, message=None):
         #this will work if not in thread probably, if we change this
         #add the id to the data and context
-        self.current_action.stop()
+        if error:
+            self.current_action.error()
+        else:
+            self.current_action.stop()
+        
         self.current_action.save()
         LOG.debug("Task stopped")
-        return False
+        
 
-    def can_execute(self, data):
+    def can_execute(self, data, ctx=None):
         """
         :param data ActionData Obj
+        move to parent?
         """
-        #use updated_at to move the logic to db instead of doing it in code
-        # tHROW CannotExecuteExceptio and proper error in hook
-        try:
-            self.last_action = action_obj.Action.get_by_name_and_target(self.NAME,
-                                                 data.target_resource)
-        except exceptions.NotFoundException:
-            LOG.debug("no action found. continue")
-            return True
-
-        if self.last_action.status == action_obj.ACTION_ERROR:
-            LOG.debug("Action was in error state, continue")
-            return True
-        # nova should take care of the real status, won't be able to migrate/
-        # evacuate twice even if running and job lost
-        if not timeutils.is_older_than(self.last_action.created_at,
-                                   self.TIME_FOR_NEXT_ACTION):
-            LOG.debug("Action is not older than expected time and running")
-            return False
-        LOG.debug("Last Action for this handler: %s"  %  self.last_action.id)
-
-        return True
+        return super(Evacuate, self).can_execute(data, ctx=ctx)

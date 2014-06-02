@@ -33,7 +33,6 @@ LOG = logging.getLogger(__name__)
 
 class Handler(resource.Resource):
     """Handler resource."""
-
     name = wtypes.text
     description = wtypes.text
     #TODO: retrieve enable/disble from stevedore?
@@ -42,11 +41,11 @@ class Handler(resource.Resource):
 
 class Handlers(resource.Resource):
     """A collection of handlers."""
-
     handlers = [Handler]
 
 
 class HandlersController(rest.RestController):
+
     @wsme_pecan.wsexpose(Handlers)
     def get_all(self):
         LOG.debug("Fetch handlers plugins")
@@ -64,18 +63,19 @@ class HandlersController(rest.RestController):
     # TODO:cannot coerce body right now, wtypes not supported and want
     # dynamic...
     # add target_resource as param optional
-    @wsme_pecan.wsexpose(None, wtypes.text, wtypes.text, wtypes.text, None)
+    #@api_utils.translate_exceptions()
+    @wsme_pecan.wsexpose(wtypes.text, wtypes.text, wtypes.text, wtypes.text, None)
     def post(self, name, source='custom', target_resource=None, data=None):
         LOG.debug('POST plugin ' + name + ':' + source + ':')
         manager = get_plugin_handler()
         try:
-            plugin = manager.get_plugin(name)
+            plugin = manager.check_plugin_name(name)
+
             conversor = data_convert.FormatterBase.get_formatter(source)
 
         except exceptions.InvalidSourceException as e:
             LOG.exception(e)
             abort(500, e.message)
-
         except Exception as e:
             #add conversor not found, pluginnotfound exception
             LOG.exception(e)
@@ -92,11 +92,7 @@ class HandlersController(rest.RestController):
         #TODO: Retrieve context if token in header from middleware
         #Should be done on authorization? If not provided used admin
         #build context should not call authorize in that case
-        try:
-            #pasar request o algo
-            ctx = utils.build_context(None, True)
-            ms = plugin()
-            ms.start(ctx, action_data)
-        except Exception as e:
-            abort(404, e.message)
+        ctx = utils.build_context(None, True)
+        return {'action_id': manager.start_plugin(name, ctx=ctx, data=action_data)}
+
 
