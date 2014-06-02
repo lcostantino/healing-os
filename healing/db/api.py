@@ -73,3 +73,17 @@ def actions_get_all(filters=None, order='-created-at'):
     if not filters:
         filters = {}
     return IMPL.actions_get_all(filters, order_by=order)
+
+###SLA_CONTRACT###
+
+def sla_contract_get_by_project(project):
+    return IMPL.sla_contract_get_by_project(project)
+
+
+def sla_contract_update(sla_contract_id, values):
+    return IMPL.sla_contract_update(sla_contract_id, values)
+
+
+def sla_contract_create(values):
+    return IMPL.sla_contract_create(values)
+

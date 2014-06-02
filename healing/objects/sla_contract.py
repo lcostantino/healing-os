@@ -2,26 +2,30 @@
 prepare in the future for real object<>rpc/db versioning
 """
 from healing.db import api as db_api
-from healing.openstack.common import jsonutils
+from healing.objects import base
+from healing.objects import fields
 
-class SLAContract(object):
-    fields = {'id': None,
-              'project_id': None,
-              'type': None,
-              'value': None,
-              'updated_at': None, #datetime.datetime.utcnow(),
-              'created_at': None, #datetime.datetime.utcnow(),
-              'deleted_at': None} #datetime.datetime.utcnow(),
 
-    def __init__(self):
-        self.__dict__.update(self.fields)
+class SLAContract(base.HealingPersistentObject, base.HealingObject):
+    VERSION = "1.0"
+    fields = {'id': fields.StringField(),
+              'project_id': fields.StringField(nullable=True),
+              'type': fields.StringField(),
+              'value': fields.StringField(nullable=True),
+              'action': fields.StringField()}
 
     @staticmethod
     def _from_db_object(sla_contract, db_sla_contract):
-        fields = set(sla_contract.fields)
-        for key in fields:
-            setattr(sla_contract, key, db_sla_contract[key])
+        for key in sla_contract.fields:
+            sla_contract[key] = db_sla_contract[key]
+        sla_contract.obj_reset_changes()
         return sla_contract
+
+    def to_dict(self):
+        values = dict()
+        for key in self.fields:
+            values[key] = self[key]
+        return values
 
     @classmethod
     def get_by_project_id(cls, project_id):
@@ -33,36 +37,20 @@ class SLAContract(object):
 
         return sla_contracts
 
-    def _convert_json(self, data, to_object=True):
-        if not data:
-            return None #should be '' also.. if to_object==false
-        try:
-            if to_object:
-                return jsonutils.loads(data)
-            else:
-                return jsonutils.dumps(data)
-        except Exception:
-            return None
-
     def create(self):
-        if getattr(self, 'id'):
+        if self.obj_attr_is_set('id'):
             # TODO: add proper exception
             raise Exception('SLA Contract already created')
-        #this is done by base class in the future... check nova objects
-        updates = {}
-        for i in self.fields:
-            updates[i] = getattr(self, i)
+
+        updates = self.obj_get_changes()
         updates.pop('id', None)
+
         db_sla_contract = db_api.sla_contract_create(updates)
         return self._from_db_object( self, db_sla_contract)
 
     def save(self):
-        # this is done by base class in the future... check nova objects
-        # ideally, we should track what actually changed
-        updates = {}
-        for i in self.fields:
-            updates[i] = getattr(self, i, None)
+        updates = self.obj_get_changes()
         updates.pop('id', None)
-        # we won't get updated_at updated here, but...
+
         db_sla_contract = db_api.sla_contract_update(self.id, updates)
         return self._from_db_object( self, db_sla_contract)

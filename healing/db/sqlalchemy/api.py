@@ -167,6 +167,8 @@ def _action_get(action_id):
 
 #setup_db()
 
+###SLA_CONTRACT###
+
 def sla_contract_get_by_project(project):
     query = model_query(m.SLAContract)
     return query.filter_by(project_id=project).all()

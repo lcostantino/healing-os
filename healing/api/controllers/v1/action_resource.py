@@ -27,7 +27,7 @@ class Action(resource.Resource):
     status = wtypes.text
 
 
-class Actionsresource.Resource):
+class Actions(resource.Resource):
     """A collection of handlers."""
 
     actions  = [Action]
