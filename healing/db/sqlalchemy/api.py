@@ -182,15 +182,24 @@ def sla_contract_get_by_project(project):
     return query.filter_by(project_id=project).all()
 
 
-def sla_contract_update(project, type, value):
+def _sla_contract_get(sla_contract_id):
     query = model_query(m.SLAContract)
-    result = query.filter_by(project_id=project).filter_by(type=type).first()
+    obj = query.filter_by(id=sla_contract_id).first()
+    if not obj:
+        raise exc.NotFoundException()
+    return obj
 
-    if not result:
-        values = dict(project_id=project, type=type, value=value)
-        sla_contract_create(values)
-    else:
-        result.update(value=value)
+
+def sla_contract_update(sla_contract_id, values):
+    session = get_session()
+    with session.begin():
+        sla_contract = _sla_contract_get(sla_contract_id)
+        if not sla_contract:
+            raise exc.NotFoundException('SLA contract not found')
+
+        sla_contract.update(values.copy())
+
+        return sla_contract
 
 
 def sla_contract_create(values):
