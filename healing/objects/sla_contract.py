@@ -27,6 +27,10 @@ class SLAContract(base.HealingPersistentObject, base.HealingObject):
             values[key] = self[key]
         return values
 
+    def from_dict(self, values):
+        for key in values.fields:
+            self[key] = values[key]
+
     @classmethod
     def get_by_project_id(cls, project_id):
         db_sla_contracts = db_api.sla_contract_get_by_project(project_id)
