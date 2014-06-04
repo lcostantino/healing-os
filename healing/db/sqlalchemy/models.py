@@ -23,6 +23,7 @@ from healing.db.sqlalchemy import model_base as mb
 
 #TODO: i think oslo has uuid utils, replace here!
 
+
 def _generate_unicode_uuid():
     return unicode(str(uuid.uuid4()))
 
@@ -67,4 +68,24 @@ class SLAContract(mb.HealingBase):
     action = sa.Column(sa.String(255), nullable=True)
 
 
+class AlarmTrack(mb.HealingBase):
+    """Contains info about the ALARMs."""
 
+    __tablename__ = 'alarm_track'
+
+    __table_args__ = (
+        sa.UniqueConstraint('id'),
+    )
+
+    id = _id_column()
+    alarm_id = sa.Column(sa.String(80))
+    contract_id = sa.Column(sa.String(80))
+    type = sa.Column(sa.String(100))
+    meter = sa.Column(sa.String(100))
+    threshold = sa.Column(sa.String(20))
+    operator = sa.Column(sa.String(5))
+    period = sa.Column(sa.String(20))
+    name = sa.Column(sa.String(255))
+    query = sa.Column(sa.String(255))
+    # if not tru SLA
+    action = sa.Column(sa.String(255))

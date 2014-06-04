@@ -45,7 +45,7 @@ def drop_db():
 # to avoid creating new ones.
 
 def action_get(action_id):
-    return IMPL.action_get(id)
+    return IMPL.action_get(action_id)
 
 def action_get_by_name_and_target(name, target, updated_time_gt=None,
                                   status=None):
@@ -56,7 +56,7 @@ def action_get_by_name_and_target(name, target, updated_time_gt=None,
     return IMPL.action_get_by_filter(filters, updated_time_gt=updated_time_gt)
 
 def action_get_by_filter(filters):
-    return IMPL.action_get_by_filter(**filters)
+    return IMPL.action_get_by_filter(filters)
 
 def action_create(values):
     return IMPL.action_create(values)
@@ -66,8 +66,8 @@ def action_update(action_id, values):
     return IMPL.action_update(action_id, values)
 
 
-def action_delete(name):
-    IMPL.action_delete(name)
+def action_delete(action_id):
+    IMPL.action_delete(action_id)
 
 def actions_get_all(filters=None, order='-created-at'):
     if not filters:
@@ -87,12 +87,42 @@ def sla_contract_update(sla_contract_id, values):
 def sla_contract_create(values):
     return IMPL.sla_contract_create(values)
 
-
+    
 def sla_contract_delete(sla_contract_id):
     return IMPL.sla_contract_delete(sla_contract_id)
 
 
 def sla_contract_get_all():
     return IMPL.sla_contract_get_all()
+      
+
+#########3 ALARM track 3###############3
+def alarm_track_get(alarm_track_id):
+    return IMPL.alarm_track_get(alarm_track_id)
+
+def alarm_track_get_by_name_and_target(name, target, updated_time_gt=None,
+                                  status=None):
+    filters = {'name': name,
+               'target_id': target}
+    if status:
+        filters['status'] = status
+    return IMPL.alarm_track_get_by_filter(filters, updated_time_gt=updated_time_gt)
+
+def alarm_track_get_by_filter(filters):
+    return IMPL.alarm_track_get_by_filter(filters)
+
+def alarm_track_create(values):
+    return IMPL.alarm_track_create(values)
 
 
+def alarm_track_update(alarm_track_id, values):
+    return IMPL.alarm_track_update(alarm_track_id, values)
+
+
+def alarm_track_delete(alarm_id):
+    IMPL.alarm_track_delete(alarm_id)
+
+def alarm_tracks_get_all(filters=None, order='created_at'):
+    if not filters:
+        filters = {}
+    return IMPL.alarm_tracks_get_all(filters, order=order)

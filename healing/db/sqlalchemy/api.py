@@ -154,13 +154,15 @@ def action_get_by_filter(filters, updated_time_gt=None, order='-created_at'):
                              (m.Action.create_at >= updated_time_gt))
     result = query.order_by(get_order(order)).first()
     if not result:
-        raise exc.NotFoundException()
+        raise exc.NotFoundException("action not found [filters=%s]" %
+                                     filters)
+
     return result
 
 #TODO: move exception to db/api.py? may be much better to abstract
 def _action_get(action_id):
     query = model_query(m.Action)
-    obj = query.filter_by(id=action_id).first()
+    obj = query.filter(m.Action.id==action_id).first()
     if not obj:
         raise exc.NotFoundException()
     return obj
@@ -209,7 +211,7 @@ def sla_contract_create(values):
 
         return contract
 
-
+        
 def sla_contract_delete(sla_contract_id):
     session = get_session()
     with session.begin():
@@ -223,3 +225,80 @@ def sla_contract_delete(sla_contract_id):
 def sla_contract_get_all():
     query = model_query(m.SLAContract)
     return query.all()
+
+        
+########################
+
+def alarm_track_create(values):
+    #TODO: move to @session_aware
+    session = get_session()
+    with session.begin():
+        alarm_track = m.AlarmTrack()
+        alarm_track.update(values.copy())
+
+        try:
+            alarm_track.save(session)
+        except db_exc.DBDuplicateEntry as e:
+            raise exc.DBDuplicateEntry("Duplicate entry for alarm_track: %s"
+                                       % e.columns)
+
+        return alarm_track
+
+def alarm_track_update(alarm_track_id, values):
+    session = get_session()
+    with session.begin():
+        alarm_track = _alarm_track_get(alarm_track_id)
+        if not alarm_track:
+            raise exc.NotFoundException("alarm_track not found [alarm_track_id=%s]" %
+                                        alarm_track_id)
+
+        alarm_track.update(values.copy())
+        alarm_track.save(session)
+        return alarm_track
+
+
+def alarm_track_delete(alarm_track_id):
+    session = get_session()
+    with session.begin():
+        res = model_query(m.AlarmTrack, session=session).filter_by(id=alarm_track_id)\
+                                                    .delete()
+        if not res:
+            raise exc.NotFoundException("alarm_track not found [alarm_track_id=%s]" %
+                                        alarm_track_id)
+
+
+def alarm_track_get(alarm_track_id):
+    return _alarm_track_get(alarm_track_id)
+
+
+def alarm_tracks_get_all(filters=None, order='created_at'):
+    if not filters:
+        filters = {}
+    return _alarm_tracks_get_all(filters, order)
+
+
+def _alarm_tracks_get_all(filters, order='-created_at'):
+    query = model_query(m.AlarmTrack)
+    return query.filter_by(**filters).order_by(get_order(order)).all()
+
+
+def alarm_track_get_by_filter(filters):
+    """
+    :param updated_time_gt: if set, will do updated_at > updated_time_gt
+    """
+    query = model_query(m.AlarmTrack)
+    query = query.filter_by(**filters)
+    result = query.first()
+    if not result:
+        raise exc.NotFoundException("alarm_track not found [filters=%s]" %
+                                     filters)
+
+    return result
+
+#TODO: move exception to db/api.py? may be much better to abstract
+def _alarm_track_get(alarm_track_id):
+    query = model_query(m.AlarmTrack)
+    obj = query.filter(m.AlarmTrack.id==alarm_track_id).first()
+    if not obj:
+        raise exc.NotFoundException()
+    return obj
