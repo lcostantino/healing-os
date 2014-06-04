@@ -1,0 +1,18 @@
+POST / HTTP/1.1
+Host: localhost:12000
+Content-Length: 272
+Accept-Encoding: gzip, deflate, compress
+Accept: */*
+User-Agent: python-requests/2.1.0 CPython/2.7.3 Linux/3.8.0-35-generic
+
+{"current": "alarm", "alarm_id": "8a7f4eb6-1fa4-4073-a558-776f58e9e701", "reason": "Transition to alarm due to 2 samples outside threshold, most recent: 1.0", "reason_data": {"count": 2, "most_recent": 1.0, "type": "threshold", "disposition": "outside"}, "previous": "ok"}
+
+
+POST / HTTP/1.1
+Host: localhost:12000
+Content-Length: 237
+Accept-Encoding: gzip, deflate, compress
+Accept: */*
+User-Agent: python-requests/2.1.0 CPython/2.7.3 Linux/3.8.0-35-generic
+
+{"current": "insufficient data", "alarm_id": "7c1324d2-a96b-4f6f-af52-c05ea33fd866", "reason": "1 datapoints are unknown", "reason_data": {"count": 1, "most_recent": null, "type": "threshold", "disposition": "unknown"}, "previous": "ok"}u

@@ -39,5 +39,4 @@ class CustomFormatter(FormatterBase):
                           target_resource=target_resource,
                           data=data, headers={})
 
-        return action_data
 
