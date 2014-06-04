@@ -13,6 +13,7 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
+
 import pecan
 from pecan import rest
 from pecan import abort
@@ -29,6 +30,7 @@ LOG = logging.getLogger(__name__)
 class SLAContract(resource.Resource):
     """SLA contract resource."""
 
+    id = wtypes.text
     project_id = wtypes.text
     type = wtypes.text
     value = wtypes.text
@@ -37,6 +39,17 @@ class SLAContract(resource.Resource):
     @classmethod
     def from_object(cls, obj_sla_contract):
         return cls().from_dict(obj_sla_contract.to_dict())
+
+    def to_object(self):
+        obj = objects.SLAContract()
+        if self.id:
+            obj.id = self.id
+        obj.project_id = self.project_id or None
+        obj.type = self.type
+        obj.value = self.value or None
+        obj.action = self.action
+
+        return obj
 
 
 class SLAContracts(resource.Resource):
@@ -55,19 +68,14 @@ class SLAContractController(rest.RestController):
         contracts = [SLAContract.from_object(val) for val in values]
         return SLAContracts(contracts=contracts)
 
-    @wsme_pecan.wsexpose(SLAContract, wtypes.text, wtypes.text, wtypes.text,
-                         wtypes.text)
-    def post(self, project_id, type, value, action):
-        LOG.debug("Fetch SLAContract controller - post")
+    @wsme_pecan.wsexpose(SLAContract, body=SLAContract)
+    def post(self, sla_contract):
+        return SLAContract.from_object(sla_contract.to_object().create())
 
-        sla_contract = objects.SLAContract()
-        sla_contract.project_id = project_id
-        sla_contract.type = type
-        sla_contract.value = value
-        sla_contract.action = action
-
-        return SLAContract.from_object(sla_contract.create())
-
+    @wsme_pecan.wsexpose(SLAContract, wtypes.text, body=SLAContract)
+    def put(self, id, sla_contract):
+        sla_contract.id = id
+        return SLAContract.from_object(sla_contract.to_object().save())
 
 class SLAAlarmingController(rest.RestController):
 
