@@ -25,10 +25,13 @@ rabbit_password = guest
 # Options for oslo.messaging
 #rpc_backend=rabbit
 
+
+
 [api]
 host = 0.0.0.0
 port = 9999
 unauthorized_urls = /v1/handlers/,
+alarm_handler_url = http://localhost:9999/sla/hit
 
 [pecan]
 auth_enable = False

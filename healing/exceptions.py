@@ -86,3 +86,12 @@ class CannotStartPlugin(HealingException):
         
         message = self.message % {'name': name}
         super(CannotStartPlugin, self).__init__(message=message)
+        
+
+class AlarmCreateOrUpdateException(HealingException):
+    message = "Error creating/updating alarms"
+    code = "ALARM_CREATE_UPDATE_ERROR"
+
+class ExternalAlarmAlreadyExists(HealingException):
+    message = "Duplicated alarm"
+    code = "ALARM_ALREADY_EXIST_ERROR"
