@@ -70,6 +70,6 @@ class SLAContract(base.HealingPersistentObject, base.HealingObject):
         return self._from_db_object( self, db_sla_contract)
 
     @classmethod
-    def delete(id):
+    def delete(cls, id):
         db_api.sla_contract_delete(id)
 

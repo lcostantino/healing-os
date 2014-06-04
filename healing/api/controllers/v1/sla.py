@@ -68,7 +68,7 @@ class SLAContractController(rest.RestController):
         contracts = [SLAContract.from_object(val) for val in values]
         return SLAContracts(contracts=contracts)
 
-    @wsme_pecan.wsexpose(SLAContract, body=SLAContract)
+    @wsme_pecan.wsexpose(SLAContract, body=SLAContract, status_code=201)
     def post(self, sla_contract):
         return SLAContract.from_object(sla_contract.to_object().create())
 
@@ -79,10 +79,13 @@ class SLAContractController(rest.RestController):
 
     @wsme_pecan.wsexpose(SLAContracts)
     def get(self):
-        return SLAContracts(objects.SLAContract.get_all())
+        contracts = [SLAContract.from_object(obj)
+                    for obj in objects.SLAContract.get_all()]
 
-    @wsme_pecan.wsexpose(wtypes.text)
-    def delete(id):
+        return SLAContracts(contracts=contracts)
+
+    @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
+    def delete(self, id):
         objects.SLAContract.delete(id)
 
 class SLAAlarmingController(rest.RestController):

@@ -215,7 +215,7 @@ def sla_contract_create(values):
 def sla_contract_delete(sla_contract_id):
     session = get_session()
     with session.begin():
-        res = model_query(m.Action, session=session).\
+        res = model_query(m.SLAContract, session=session).\
             filter_by(id=sla_contract_id).delete()
         if not res:
             raise exc.NotFoundException("SLA Contract not found "
