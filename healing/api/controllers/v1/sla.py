@@ -77,6 +77,14 @@ class SLAContractController(rest.RestController):
         sla_contract.id = id
         return SLAContract.from_object(sla_contract.to_object().save())
 
+    @wsme_pecan.wsexpose(SLAContracts)
+    def get(self):
+        return SLAContracts(objects.SLAContract.get_all())
+
+    @wsme_pecan.wsexpose(wtypes.text)
+    def delete(id):
+        objects.SLAContract.delete(id)
+
 class SLAAlarmingController(rest.RestController):
 
     @wsme_pecan.wsexpose()

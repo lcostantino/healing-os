@@ -87,3 +87,12 @@ def sla_contract_update(sla_contract_id, values):
 def sla_contract_create(values):
     return IMPL.sla_contract_create(values)
 
+
+def sla_contract_delete(sla_contract_id):
+    return IMPL.sla_contract_delete(sla_contract_id)
+
+
+def sla_contract_get_all():
+    return IMPL.sla_contract_get_all()
+
+

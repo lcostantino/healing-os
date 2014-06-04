@@ -41,6 +41,16 @@ class SLAContract(base.HealingPersistentObject, base.HealingObject):
 
         return sla_contracts
 
+    @classmethod
+    def get_all(cls):
+        db_sla_contracts = db_api.sla_contract_get_all()
+
+        sla_contracts = []
+        for db_sla_contract in db_sla_contracts:
+            sla_contracts.append(cls._from_db_object(cls(), db_sla_contract))
+
+        return sla_contracts
+
     def create(self):
         if self.obj_attr_is_set('id'):
             # TODO: add proper exception
@@ -58,3 +68,8 @@ class SLAContract(base.HealingPersistentObject, base.HealingObject):
 
         db_sla_contract = db_api.sla_contract_update(self.id, updates)
         return self._from_db_object( self, db_sla_contract)
+
+    @classmethod
+    def delete(id):
+        db_api.sla_contract_delete(id)
+
