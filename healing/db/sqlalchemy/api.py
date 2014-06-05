@@ -211,6 +211,22 @@ def sla_contract_create(values):
 
         return contract
 
+        
+def sla_contract_delete(sla_contract_id):
+    session = get_session()
+    with session.begin():
+        res = model_query(m.SLAContract, session=session).\
+            filter_by(id=sla_contract_id).delete()
+        if not res:
+            raise exc.NotFoundException("SLA Contract not found "
+                                        "[contract_id=%s]" % sla_contract_id)
+
+
+def sla_contract_get_all():
+    query = model_query(m.SLAContract)
+    return query.all()
+
+        
 ########################
 
 def alarm_track_create(values):
@@ -286,4 +302,3 @@ def _alarm_track_get(alarm_track_id):
     if not obj:
         raise exc.NotFoundException()
     return obj
-
