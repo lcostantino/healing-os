@@ -38,10 +38,6 @@ class CeilometerAlarm(alarm_base.AlarmBase):
             self.client = utils.get_ceilometer_client(self.ctx)
         return self.client
 
-    def _build_query(self, field, operator, value, field_type=''):
-        return {'field': field, 'op': operator, 'value': value,
-                'type': field_type}
-
     def _build_default_hook(self, params):
         url = self.options.get('base_alarm_url',
                                None) or config.CONF.api.alarm_handler_url
@@ -76,7 +72,7 @@ class CeilometerAlarm(alarm_base.AlarmBase):
     def add_query(self, field, value, operator="eq", field_type=''):
         query = self.query or []
         # to avoid 2 calls to json till field is ready
-        query.append(self._build_query(field, operator, value, field_type))
+        query.append(utils.build_ceilometer_query(field, operator, value, field_type))
         self.query = query
 
     def build_alarm_fields(self):
@@ -174,23 +170,16 @@ class CeilometerAlarm(alarm_base.AlarmBase):
           
         try:
             client = self._get_client()
-            period = period or 0
-            query = query or []
             meter = meter or self.meter
-            if not end_date:
-                end_date = timeutils.utcnow()
             if not start_date:
-                delta = delta_seconds or (self.period * self.evaluation_period)
-                start_date = end_date - timeutils.datetime.timedelta(seconds=delta)
-            #lt,le,gt,ge not supported for start and end, but this should work
-            query.append(self._build_query(field='end', operator='eq',
-                                           value=timeutils.strtime(end_date)))
-                                           
-            query.append(self._build_query(value=timeutils.strtime(start_date),
-                                           operator='eq', field='start'))
-            res = client.statistics.list(meter_name=meter, period=period, q=query,
-                                         groupby=group_by,
-                                         aggregates=aggregates or [])
+                delta_seconds = delta_seconds or (self.period * self.evaluation_period) 
+            
+            res = utils.get_ceilometer_statistics(client, meter=meter, period=period, 
+                                                  query=query,
+                                                  start_date=start_date, end_date=end_date,
+                                                  delta_seconds = delta_seconds,
+                                                  group_by=group_by,
+                                                  aggregates=aggregates or [])
             if result_process:
                 return result_process()(self, res)
             return res
