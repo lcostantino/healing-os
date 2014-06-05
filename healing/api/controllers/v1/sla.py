@@ -14,15 +14,16 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import pecan
 from pecan import rest
-from pecan import abort
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
-from healing.openstack.common import log as logging
+from healing import utils
 from healing.api.controllers import resource
+from healing.engine.sla.manager import SLAEngine
+from healing.openstack.common import log as logging
 from healing.objects import sla_contract as objects
+
 
 LOG = logging.getLogger(__name__)
 
@@ -36,21 +37,6 @@ class SLAContract(resource.Resource):
     value = wtypes.text
     action = wtypes.text
 
-    @classmethod
-    def from_object(cls, obj_sla_contract):
-        return cls().from_dict(obj_sla_contract.to_dict())
-
-    def to_object(self):
-        obj = objects.SLAContract()
-        if self.id:
-            obj.id = self.id
-        obj.project_id = self.project_id or None
-        obj.type = self.type
-        obj.value = self.value or None
-        obj.action = self.action
-
-        return obj
-
 
 class SLAContracts(resource.Resource):
     """SLA contract resource list."""
@@ -60,33 +46,39 @@ class SLAContracts(resource.Resource):
 
 class SLAContractController(rest.RestController):
 
-    @wsme_pecan.wsexpose(SLAContracts, wtypes.text)
-    def get(self, project_id):
-        LOG.debug("Fetch SLAContract controller - get")
-        values = objects.SLAContract.get_by_project_id(project_id)
+    def __init__(self):
+        self.engine = SLAEngine()
 
-        contracts = [SLAContract.from_object(val) for val in values]
-        return SLAContracts(contracts=contracts)
+    @wsme_pecan.wsexpose(SLAContract, wtypes.text)
+    def get(self, contract_id):
+        contract_dict = self.engine.get(contract_id)
+        return SLAContract.from_dict(contract_dict)
 
     @wsme_pecan.wsexpose(SLAContract, body=SLAContract, status_code=201)
     def post(self, sla_contract):
-        return SLAContract.from_object(sla_contract.to_object().create())
+        ctx = utils.build_context(None, True)
+        contract_dict = self.engine.create(ctx, sla_contract.to_dict(), 120)
+        return SLAContract.from_dict(contract_dict)
 
     @wsme_pecan.wsexpose(SLAContract, wtypes.text, body=SLAContract)
     def put(self, id, sla_contract):
+        ctx = utils.build_context(None, True)
         sla_contract.id = id
-        return SLAContract.from_object(sla_contract.to_object().save())
+        contract_dict = self.engine.update(ctx, sla_contract.to_dict(), 120)
+        return SLAContract.from_dict(contract_dict)
 
     @wsme_pecan.wsexpose(SLAContracts)
     def get(self):
-        contracts = [SLAContract.from_object(obj)
-                    for obj in objects.SLAContract.get_all()]
+        contract_dicts = self.engine.get_all()
+        contracts = [SLAContract.from_dict(obj) for obj in contract_dicts]
 
         return SLAContracts(contracts=contracts)
 
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, id):
-        objects.SLAContract.delete(id)
+        ctx = utils.build_context(None, True)
+        self.engine.delete(id)
+
 
 class SLAAlarmingController(rest.RestController):
 

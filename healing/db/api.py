@@ -79,6 +79,8 @@ def actions_get_all(filters=None, order='-created-at'):
 def sla_contract_get_by_project(project):
     return IMPL.sla_contract_get_by_project(project)
 
+def sla_contract_get_by_id(id):
+    return IMPL.sla_contract_get_by_id(id)
 
 def sla_contract_update(sla_contract_id, values):
     return IMPL.sla_contract_update(sla_contract_id, values)
