@@ -55,6 +55,13 @@ class AlarmTrack(base.HealingPersistentObject, base.HealingObject):
         return cls._from_db_object(cls(), db_alarm_track)
 
     @classmethod
+    def get_by_alarm_id(cls, alarm_id):
+        """ If single alarm, can contains multiples records."""
+        filters = {'alarm_id': alarm_id}
+        objs = db_api.alarm_tracks_get_all(filters) or []
+        return [cls._from_db_object(cls(), x) for x in objs]
+
+    @classmethod
     def get_by_contract_id(cls, contract_id):
         filters = {'contract_id': contract_id}
         db_alarm_track = db_api.alarm_track_get_by_filters(filters)

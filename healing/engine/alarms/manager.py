@@ -47,6 +47,15 @@ def get_by_id(ctx, alarm_track_id, kwargs=None):
         LOG.exception(e)
         return None
 
+def get_by_alarm_id(ctx, alarm_id, kwargs=None):
+    try:
+        obj = alarm_obj.AlarmTrack.get_by_alarm_id(alarm_id)
+        cls = get_alarm_class_for_type(obj.type)
+        return cls(ctx=ctx, alarm_object=obj, kwargs=kwargs)
+    except Exception as e:
+        LOG.exception(e)
+        return None
+
 
 def alarm_build_by_type(ctx, alarm_type, **kwargs):
     try:

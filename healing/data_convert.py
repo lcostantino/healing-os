@@ -40,3 +40,12 @@ class CustomFormatter(FormatterBase):
                           data=data, headers={})
 
 
+
+class CeilometerFormatter(CustomFormatter):
+    """ We expect ceilmeter to send target_resource if calling
+        handlers without SLA component.
+        We could get the resource from ceilometer also based on 
+        alarm_id in the future
+    """
+    SOURCE = 'ceilometer'
+
