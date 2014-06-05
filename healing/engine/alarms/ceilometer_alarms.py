@@ -4,6 +4,7 @@ from healing import config
 from healing import exceptions
 from healing import utils
 from healing.engine.alarms import alarm_base
+from healing.openstack.common import timeutils
 from healing.openstack.common import log as logging
 from healing.openstack.common import excutils
 from healing.objects import alarm_track as alarm_obj
@@ -11,9 +12,6 @@ from healing.objects import alarm_track as alarm_obj
 from ceilometerclient import exc as cl_exception
 
 LOG = logging.getLogger(__name__)
-
-# TODO: add with context to reduce repeated code of create/update/etc
-
 
 class CeilometerAlarm(alarm_base.AlarmBase):
     """
@@ -23,10 +21,17 @@ class CeilometerAlarm(alarm_base.AlarmBase):
     CONF.alarm_host_url/?status=[ok,alarm,insufficient]
     Subclasses my add contract_id for instance or whatever is required,
     but the alarm_id is enough to search the proper AlarmTrack
+
+    It operate over saved alarmtrack objects, so should not be directly
+    used.
     """
     client = None
     ALARM_TYPE = 'ceilometer_alarm'
-    hooks = {}
+
+
+    def __init__(self, **kwargs):
+        self.hooks = {}
+        super(CeilometerAlarm, self).__init__(**kwargs)
 
     def _get_client(self):
         if not self.client:
@@ -36,6 +41,7 @@ class CeilometerAlarm(alarm_base.AlarmBase):
     def _build_default_hook(self, params):
         url = self.options.get('base_alarm_url',
                                None) or config.CONF.api.alarm_handler_url
+        params['source'] = 'ceilometer'
         return '?'.join((url, six.moves.urllib_parse.urlencode(params)))
 
     def set_default_alarm_hook(self, params=None):
@@ -66,8 +72,7 @@ class CeilometerAlarm(alarm_base.AlarmBase):
     def add_query(self, field, value, operator="eq", field_type=''):
         query = self.query or []
         # to avoid 2 calls to json till field is ready
-        query.append({'field': field, 'op': operator,
-                      'value': value, 'type': field_type})
+        query.append(utils.build_ceilometer_query(field, operator, value, field_type))
         self.query = query
 
     def build_alarm_fields(self):
@@ -76,13 +81,16 @@ class CeilometerAlarm(alarm_base.AlarmBase):
         fields = {'meter_name': self.meter,
                   'period': self.period,
                   'comparison_operator': self.operator,
-                  'name': self.alarm_id or self.alarm_track_id,
+                  'name': self.alarm_track_id or self.alarm_id,
                   'threshold': self.threshold,
                   'repeat_actions': repeat,
                   'type': 'threshold'}
+        if self.statistic:
+            fields['statistic'] = self.statistic
+        if self.evaluation_period:
+            fields['evaluation_period'] = self.evaluation_period
         if project:
             fields['project_id'] = project
-
         fields.update(self.hooks)
         if self.query:
             # TODO: build query base on ceilometer expectation
@@ -123,7 +131,62 @@ class CeilometerAlarm(alarm_base.AlarmBase):
     def is_active(self):
         pass
 
-    def who_trigger_it(self):
+    def affected_resources(self, group_by='resource_id',
+                           period=0, query=None,
+                           start_date=None, end_date=None,
+                           aggregates=None, delta_seconds=None,
+                           meter=None,
+                           result_process=None):
+                          
+        """
+        Fetch statics based on period and same threshold.
+        this is usefull mostly for singleton alarms or
+        tenant resource based alarms.
+        You may monitor tenant/project for cpu statics, but
+        in this case, you won't get the exact resource if there's
+        one or a combination of samples.
+        For other types of alarm where resource is unique, you
+        can fetch it straight from the contract model.
+
+        :param period Period of time. This will
+                      split the statistics in periods so, check if it's
+                      what you expect.
+        :param query something like [{'field': 'start', 'type': '', 'value':
+                                      '2014-06-03T00:53:00', 'op': 'eq'}]
+        :param start_date Samples started on datetime.
+                          ( if not set will be
+                            current_time - delta or Alarm_Period - x)
+        :param end_date Samples finished on - if not set will be current_time
+        :param delta_seconds If end_data start_date is None, will substract
+                             seconds from current_date==end_date
+        :param meter Meter name or current alarm meter name. The param is here
+                     to do combination queries in future alarms
+                     
+        :param result_process if it's a function invoke it on results
+        
+        The result is returned as it's. Must implement a generic converter.
+        
+        """
+          
+        try:
+            client = self._get_client()
+            meter = meter or self.meter
+            if not start_date:
+                delta_seconds = delta_seconds or (self.period * self.evaluation_period) 
+            
+            res = utils.get_ceilometer_statistics(client, meter=meter, period=period, 
+                                                  query=query,
+                                                  start_date=start_date, end_date=end_date,
+                                                  delta_seconds = delta_seconds,
+                                                  group_by=group_by,
+                                                  aggregates=aggregates or [])
+            if result_process:
+                return result_process()(self, res)
+            return res
+                                   
+        except Exception as e:
+            LOG.exception(e)
+            raise # cannotgetresourceseceptin
         pass
 
 
@@ -141,6 +204,10 @@ class HostDownUniqueAlarm(CeilometerAlarm):
     """
     ALARM_TYPE = 'host_down_unique'
     unique_alarm_obj = None
+
+    def __init__(self, **kwargs):
+        self.unique_alarm_obj = None
+        super(HostDownUniqueAlarm, self).__init__(**kwargs)
 
     def get_unique_alarm(self, refresh=False):
         if not self.unique_alarm_obj or refresh:
@@ -229,8 +296,6 @@ class HostDownUniqueAlarm(CeilometerAlarm):
             LOG.exception(e)
             raise exceptions.AlarmCreateOrUpdateException()
 
-# falta un create_alarm o algo en ase al type invoque la clase
-
 
 class ResourceAlarm(CeilometerAlarm):
 
@@ -299,3 +364,4 @@ class ResourceAlarm(CeilometerAlarm):
         except Exception as e:
             LOG.exception(e)
             raise exceptions.AlarmCreateOrUpdateException()
+

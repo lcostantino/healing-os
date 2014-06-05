@@ -60,8 +60,9 @@ class AlarmBase(object):
 
     def __init__(self, ctx, remote_alarm_id=None,
                  contract_id=None, meter="dummy",
-                 threshold="0", period="0", operator="eq",
-                 query=None, alarm_object=None, **kwargs):
+                 threshold=0, period=10, operator="eq",
+                 query=None, alarm_object=None, evaluation_period=1,
+                 statistic='avg', **kwargs):
         """
         You need to provide contract_id, meter, threshold, period and
         operator if it's a new object
@@ -81,7 +82,9 @@ class AlarmBase(object):
         self.alarm_id = remote_alarm_id
         self.period = period
         self.threshold = threshold
+        self.statistic = statistic
         self.operator = operator
+        self.evaluation_period = evaluation_period
         self.type = self.ALARM_TYPE
 
     # this could be done by __getattr__ and __setattr__ to proxy the object,
@@ -145,6 +148,22 @@ class AlarmBase(object):
     @period.setter
     def period(self, val):
         self.alarm_track.period = val
+    
+    @property
+    def statistic(self):
+        return self.alarm_track.statistic
+
+    @statistic.setter
+    def statistic(self, val):
+        self.alarm_track.statistic = val
+    
+    @property
+    def evaluation_period(self):
+        return self.alarm_track.evaluation_period
+
+    @evaluation_period.setter
+    def evaluation_period(self, val):
+        self.alarm_track.evaluation_period = val
 
     @property
     def query(self):
@@ -174,7 +193,12 @@ class AlarmBase(object):
         return True
 
     # TODO: change name
-    def who_trigger_it(self):
+    def affected_resources(self, group_by='resource_id',
+                           period=0, query=None,
+                           start_date=None, end_date=None,
+                           aggregates=None, delta_seconds=None,
+                           meter=None,
+                           result_process=None):
         pass
 
     def set_default_alarm_hook(self):

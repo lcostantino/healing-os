@@ -49,6 +49,7 @@ class Action(mb.HealingBase):
     action_meta = sa.Column(sa.String(200), nullable=True)
     target_id = sa.Column(sa.String(80))
     project_id = sa.Column(sa.String(80), nullable=True)
+    request_id = sa.Column(sa.String(80), nullable=True)
     internal_data = sa.Column(sa.String(200), nullable=True)
 
 
@@ -84,8 +85,10 @@ class AlarmTrack(mb.HealingBase):
     meter = sa.Column(sa.String(100))
     threshold = sa.Column(sa.String(20))
     operator = sa.Column(sa.String(5))
-    period = sa.Column(sa.String(20))
+    period = sa.Column(sa.Integer(10), default=10)
+    evaluation_period = sa.Column(sa.Integer(10), default=1)
     name = sa.Column(sa.String(255))
     query = sa.Column(sa.String(255))
+    statistic = sa.Column(sa.String(255))
     # if not tru SLA
     action = sa.Column(sa.String(255))

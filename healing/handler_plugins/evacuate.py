@@ -28,10 +28,8 @@ class Evacuate(base.HandlerPluginBase):
         """
         if not self.can_execute(data):
             raise exceptions.ActionInProgress()
-
+                
         self.register_action(data)
-       
-        #poner un with?
         try:
             client = utils.get_nova_client(ctx)
             print client.servers.list()

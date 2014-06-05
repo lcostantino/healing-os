@@ -15,10 +15,14 @@ class AlarmTrack(base.HealingPersistentObject, base.HealingObject):
               'contract_id': fields.StringField(nullable=False),
               'type': fields.StringField(),
               'meter': fields.StringField(),
+              # It's a string, because we may support other monitoring tools
+              # that report status value
               'threshold': fields.StringField(),
               'operator': fields.StringField(nullable=True),
-              'period': fields.StringField(),
+              'period': fields.IntegerField(),
+              'evaluation_period': fields.IntegerField(default=1),
               'query': fields.StringField(nullable=True),
+              'statistic': fields.StringField(nullable=True),
               'action': fields.StringField(nullable=True)}
 
     def same_values(self, obj1):

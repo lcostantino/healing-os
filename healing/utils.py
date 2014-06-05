@@ -6,6 +6,7 @@ from healing import config
 from healing import context
 from healing import exceptions as exc
 from healing.openstack.common import log as logging
+from healing.openstack.common import timeutils
 
 
 LOG = logging.getLogger(__name__)
@@ -26,22 +27,21 @@ def build_context(username=None, password=None,
     # this is used by the plugins and fake context request if auth disabled
     if not username and not password and admin:
         username = config.CONF.keystone.admin_user
-        password=config.CONF.keystone.admin_password
+        password = config.CONF.keystone.admin_password
 
     ctx = context.Context(user=username, password=password)
     get_auth_token(ctx, admin)
 
     return ctx
 
+
 def context_from_headers(headers):
-    return context.Context(
-             user_id=headers.get('X-User-Id'),
-             project=headers.get('X-Project-Name'),
-             token=headers.get('X-Auth-Token'),
-             service_catalog=headers.get('X-Service-Catalog'),
-             user=headers.get('X-User-Name'),
-             roles=headers.get('X-Roles', "").split(",")
-    )
+    return context.Context(user_id=headers.get('X-User-Id'),
+                           project=headers.get('X-Project-Name'),
+                           token=headers.get('X-Auth-Token'),
+                           service_catalog=headers.get('X-Service-Catalog'),
+                           user=headers.get('X-User-Name'),
+                           roles=headers.get('X-Roles', "").split(","))
 
 
 def get_context_req(request, admin=True):
@@ -54,6 +54,7 @@ def get_context_req(request, admin=True):
     if admin:
         return request.admin_ctx
     return request.user_ctx
+
 
 def get_auth_token(ctx, admin=True, refresh_token=False):
     if ctx.token and not refresh_token:
@@ -76,39 +77,38 @@ def get_auth_token(ctx, admin=True, refresh_token=False):
         LOG.exception(e)
         raise exc.AuthorizationException()
 
+
 def get_endpoint_url(ctx, service='identity', endpoint_type='publicURL',
                      version="v2", region=None):
-    """ TODO: Check how it works when X-Service-Catalog is in HEADERs on auth 
+    """ TODO: Check how it works when X-Service-Catalog is in HEADERs on auth
         enabled. Probably this will fail.
         ADd version check
     """
     if not ctx.service_catalog:
         return None
-    
+
     for x in ctx.service_catalog.get(service):
         if region and not x.get(region) == region:
             continue
         return x.get(endpoint_type)
-        
     return None
 
-def get_keystone_client(auth_url, username=None, password=None, project_name=None, 
-                        auth_token=None):
+
+def get_keystone_client(auth_url, username=None, password=None,
+                        project_name=None, auth_token=None):
     client = keystone_client.Client(username=username, password=password,
-                                   project_name=project_name, auth_token=auth_token,
-                                   auth_url=auth_url)
+                                    project_name=project_name,
+                                    auth_token=auth_token, auth_url=auth_url)
 
     return client
 
+
 def admin_keystone_client(project_name):
     auth_url = config.CONF.keystone.auth_uri
-    
-    client = get_keystone_client(
-                        username=config.CONF.keystone.admin_user,
-                        password=config.CONF.keystone.admin_password,
-                        project_name=project_name,
-                        auth_url=auth_url)
-
+    client = get_keystone_client(username=config.CONF.keystone.admin_user,
+                                 password=config.CONF.keystone.admin_password,
+                                 project_name=project_name,
+                                 auth_url=auth_url)
     client.management_url = auth_url
     return client
 
@@ -123,6 +123,63 @@ def get_nova_client(ctx):
 
 def get_ceilometer_client(ctx):
     ep = get_endpoint_url(ctx, service='metering')
-    client = ceilometer_client.get_client("2", ceilometer_url=ep, 
-                                              os_auth_token = ctx.token)
+    client = ceilometer_client.get_client("2", ceilometer_url=ep,
+                                          os_auth_token=ctx.token)
     return client
+
+
+def get_ceilometer_statistics(client, group_by='resource_id',
+                              period=0, query=None,
+                              start_date=None, end_date=None,
+                              aggregates=None, delta_seconds=None,
+                              meter=None):
+    try:
+        period = period or 0
+        query = query or []
+        meter = meter
+        if not end_date:
+            end_date = timeutils.utcnow()
+        if not start_date:
+            delta_seconds = timeutils.datetime.timedelta(seconds=delta_seconds)
+            start_date = end_date - delta_seconds
+        #lt,le,gt,ge not supported for start and end, but this should work
+        query.append(build_ceilometer_query(field='end', operator='eq',
+                                            value=timeutils.strtime(end_date)))
+        query.append(build_ceilometer_query(
+                                    value=timeutils.strtime(start_date),
+                                    operator='eq', field='start'))
+        return client.statistics.list(meter_name=meter, period=period, q=query,
+                                      groupby=group_by,
+                                      aggregates=aggregates or [])
+    except Exception as e:
+        LOG.exception(e)
+        return None
+
+
+def build_ceilometer_query(field, operator, value, field_type=''):
+    return {'field': field, 'op': operator, 'value': value,
+            'type': field_type}
+
+
+def get_nova_vms(client, tenant_id=None, host=None):
+    res_by_tenant_id = {}
+    search_opts = {}
+    if not tenant_id:
+        search_opts['all_tenants'] = 1
+    else:
+        search_opts['tenant_id'] = tenant_id
+        
+    if host:
+        search_opts['host'] = host
+        
+    res = client.servers.list(search_opts=search_opts)
+    if res:
+        for x in res:
+            res_by_tenant_id[x.tenant_id] = {'id': x.id,
+                                             'vm_state': getattr(x, 'OS-EXT-STS:vm_state'),
+                                             'power_state': getattr(x, 'OS-EXT-STS:power_state'),
+                                             'name': x.name}
+    
+    return res_by_tenant_id
+    
+    pass
