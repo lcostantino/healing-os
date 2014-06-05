@@ -28,7 +28,7 @@ class SLAContract(base.HealingPersistentObject, base.HealingObject):
         return values
 
     def from_dict(self, values):
-        for key in values.fields:
+        for key in values.keys():
             self[key] = values[key]
 
     @classmethod
@@ -40,6 +40,10 @@ class SLAContract(base.HealingPersistentObject, base.HealingObject):
             sla_contracts.append(cls._from_db_object(cls(), db_sla_contract))
 
         return sla_contracts
+
+    @classmethod
+    def get_by_contract_id(cls, contract_id):
+        return db_api.sla_contract_get_by_id(contract_id)
 
     @classmethod
     def get_all(cls):

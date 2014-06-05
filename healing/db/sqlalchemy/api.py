@@ -176,7 +176,7 @@ def sla_contract_get_by_project(project):
     return query.filter_by(project_id=project).all()
 
 
-def _sla_contract_get(sla_contract_id):
+def sla_contract_get_by_id(sla_contract_id):
     query = model_query(m.SLAContract)
     obj = query.filter_by(id=sla_contract_id).first()
     if not obj:
@@ -187,7 +187,7 @@ def _sla_contract_get(sla_contract_id):
 def sla_contract_update(sla_contract_id, values):
     session = get_session()
     with session.begin():
-        sla_contract = _sla_contract_get(sla_contract_id)
+        sla_contract = sla_contract_get_by_id(sla_contract_id)
         if not sla_contract:
             raise exc.NotFoundException('SLA contract not found')
 
