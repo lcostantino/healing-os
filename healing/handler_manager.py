@@ -18,13 +18,12 @@ from stevedore import extension
 from healing import exceptions
 from healing.handler_plugins import plugin_config
 from healing.openstack.common import log
+from healing.openstack.common import threadgroup
 
 LOG = log.getLogger(__name__)
 
 
 CURRENT_HANDLER = None
-
-
 class HandlerManager(object):
 
     def __init__(self):
@@ -36,6 +35,7 @@ class HandlerManager(object):
                                 invoke_on_load=False,
                                 invoke_args=(),)
         self.setup_config()
+        self.thread_pool = threadgroup.ThreadGroup(thread_pool_size=3)
 
     def setup_config(self):
         plain_data = {}
@@ -79,23 +79,65 @@ class HandlerManager(object):
 
         return False
 
-    def start_plugin(self, name, *args, **kwargs):
+    def start_plugins_group(self, ctx, plugin_group):
         """
-        Call start , check restrictions
-        :params args mandatory -> ctx and data
+        :param plugin group A list of ActionData objects
+               to invoke start plugin using threadgroups.
+        This need lot of tests, to assure context and self still
+        available. or refactor.
+        This will wait till all threads finish, so be carefull
+        on handling to long the request until the async version
+        is ready.
+        
+        Return number of executions
         """
-        #TODO: add with reraise exception
+        run_plugins = []
+        for x in plugin_group:
+            try:
+                plug = self._get_and_check_plugin(x.name, data=x)
+                if plug:
+                    run_plugins.append((plug, x))
+            except exceptions.CannotStartPlugin:
+                pass
+        for plug_obj,data in run_plugins:
+            self.thread_pool.add_thread(plug_obj.start, ctx=ctx, data=data)
+        self.thread_pool.wait()
+        return len(run_plugins)
+
+
+    def _get_and_check_plugin(self, name, *args, **kwargs):
+        """
+        if kwargs contains omit_checks, won't apply
+        restrictions.
+        """
         try:
             plugin = self.get_plugin(name)()
             plugin.prepare_for_checks(*args, **kwargs)
-            if self.can_execute(name, last_action=plugin.last_action, *args,
-                                **kwargs):
-                return plugin.start(*args, **kwargs)
+            if not kwargs.get('omit_checks', False):
+                if not self.can_execute(name, last_action=plugin.last_action,
+                                        *args, **kwargs):
+                    return None
+            return plugin
         except Exception as e:
             #add pluginnotfound exception or something
             LOG.exception(e)
             raise exceptions.CannotStartPlugin(name=name)
 
+        return None
+    
+    def start_plugin(self, name, *args, **kwargs):
+        """
+        Call start , check restrictions
+        :name should be data.name
+        :params args mandatory -> ctx and data
+
+        if kwargs contains omit_checks, won't apply
+        restrictions.
+        """
+        #TODO: add with reraise exception
+        plugin = self._get_and_check_plugin(name, *args, **kwargs)
+        if plugin:
+           return plugin.start(*args, **kwargs)
         return None
 
     def check_plugin_name(self, name):

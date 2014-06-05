@@ -47,12 +47,20 @@ LOG = logging.getLogger(__name__)
 def launch_api(transport):
     host = cfg.CONF.api.host
     port = cfg.CONF.api.port
-    server = simple_server.make_server(host, port,
-                                       app.setup_app(transport=transport))
+    
+    if cfg.CONF.api.use_cherrypy:
+        import cherrypy
+        from cherrypy import wsgiserver
+        server = wsgiserver.CherryPyWSGIServer((host, port), app.setup_app(transport=transport),
+                                               server_name='simpleapp')
+        starter = server.start
+    else:
+        server = simple_server.make_server(host, port, app.setup_app(transport=transport))
+        starter = server.serve_forever
     LOG.info("Healing API is serving on http://%s:%s (PID=%s)" %
              (host, port, os.getpid()))
-    server.serve_forever()
 
+    starter()
 
 def launch_any(transport, options):
     # Launch the servers on different threads.

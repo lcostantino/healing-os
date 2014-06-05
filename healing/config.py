@@ -26,6 +26,7 @@ from healing import version
 
 api_opts = [
     cfg.StrOpt('host', default='0.0.0.0', help='Healing API server host'),
+    cfg.BoolOpt('use_cherrypy', default=False, help='Start a cherrypy wsgi server'),
     cfg.IntOpt('port', default=9191, help='Healing API server port'),
     cfg.StrOpt('alarm_handler_url', default="log://", help='Default Alarm Handler callback'),
     cfg.ListOpt('unauthorized_urls', default=[], help=

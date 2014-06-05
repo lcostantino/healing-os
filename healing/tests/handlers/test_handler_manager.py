@@ -15,6 +15,7 @@ import mock
 from healing import handler_manager
 from healing.handler_plugins import plugin_config
 from healing.handler_plugins import base as base_plugin
+from healing.handler_plugins import action_data
 from healing.handler_plugins.restrictions import base as restr_base
 from healing.tests import base
 import yaml
@@ -79,7 +80,7 @@ RESTRICTIONS_MGR = {FakeRestriction.NAME: FakeObj(FakeRestriction.NAME,
 
 def get_action_data(name='fake', target_resource='fake', source='custom',
                     data=None, headers=None, internal_data=None):
-    return base_plugin.ActionData(name, target_resource, source, data, headers,
+    return action_data.ActionData(name, target_resource, source, data, headers,
                                   internal_data)
 
 

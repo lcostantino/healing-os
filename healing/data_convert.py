@@ -1,7 +1,7 @@
 import abc
 from healing.openstack.common import jsonutils
 from healing import exceptions
-from healing.handler_plugins.base import ActionData
+from healing.handler_plugins.action_data import ActionData
 
 class FormatterBase(object):
     """Format data based on source

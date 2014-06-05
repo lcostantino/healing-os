@@ -18,4 +18,4 @@ SQLAlchemy>=0.7.8,<=0.9.99
 python-ceilometerclient>=1.0.6
 python-keystoneclient>=0.8.0
 python-novaclient>=2.17.0
-
+CherryPy>=3.2.2
