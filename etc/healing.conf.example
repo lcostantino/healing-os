@@ -44,7 +44,7 @@ debug = True
 connection = sqlite:///healing.sqlite
 
 [keystone]
-auth_uri=http://localhost:5000/v2.0/
+auth_uri=http://localhost:5000/v3/
 auth_host=localhost
 auth_port=5000
 admin_user=admin
