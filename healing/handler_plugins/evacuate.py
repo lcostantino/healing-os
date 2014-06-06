@@ -1,13 +1,9 @@
 from healing.handler_plugins import base
-from healing.objects import action as action_obj
 
 from healing import exceptions
 from healing.openstack.common import log as logging
-from healing.openstack.common import timeutils
 from healing import utils
 
-from novaclient import client
-import datetime
 
 LOG = logging.getLogger(__name__)
 
@@ -32,7 +28,6 @@ class Evacuate(base.HandlerPluginBase):
         self.register_action(data)
         try:
             client = utils.get_nova_client(ctx)
-            print client.servers.list()
         except Exception as e:
             LOG.exception(e)
             self.current_action.internal_data_obj.error_msg = e.message

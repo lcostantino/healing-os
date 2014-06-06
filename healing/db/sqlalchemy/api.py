@@ -302,3 +302,28 @@ def _alarm_track_get(alarm_track_id):
     if not obj:
         raise exc.NotFoundException()
     return obj
+
+########################
+
+
+def failure_track_get_all():
+    query = model_query(m.FailureTrack)
+    return query.all()
+
+
+def failure_track_create(values):
+    session = get_session()
+    with session.begin():
+        failure = m.FailureTrack()
+        failure.update(values.copy())
+
+        try:
+            failure.save(session)
+        except db_exc.DBDuplicateEntry as e:
+            raise exc.DBDuplicateEntry("Duplicate entry for failure track: %s"
+                                       % e.columns)
+
+        return failure
+
+
+########################

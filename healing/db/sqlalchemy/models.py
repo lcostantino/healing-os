@@ -92,3 +92,18 @@ class AlarmTrack(mb.HealingBase):
     statistic = sa.Column(sa.String(255))
     # if not tru SLA
     action = sa.Column(sa.String(255))
+
+
+class FailureTrack(mb.HealingBase):
+    """Contains info about the SLA contracts."""
+
+    __tablename__ = 'failure_track'
+
+    __table_args__ = (
+        sa.UniqueConstraint('id'),
+    )
+
+    id = _id_column()
+    time = sa.Column(sa.DateTime)
+    alarm_id = sa.Column(sa.String(255))
+    data = sa.Column(sa.String(255), nullable=True)

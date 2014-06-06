@@ -46,7 +46,7 @@ class ActionsController(rest.RestController):
                 
                 
                 
-        print mg.start_plugins_group(ctx, to_run)
+        print(mg.start_plugins_group(ctx, to_run))
                 
                 
         #client = utils.get_ceilometer_client(ctx)

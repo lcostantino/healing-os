@@ -14,15 +14,16 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+from pecan import abort
 from pecan import rest
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
 from healing import utils
 from healing.api.controllers import resource
-from healing.engine.sla.manager import SLAEngine
+from healing.engine.sla.manager import SLAContractEngine
+from healing.engine.sla.manager import SLAAlarmingEngine
 from healing.openstack.common import log as logging
-from healing.objects import sla_contract as objects
 
 
 LOG = logging.getLogger(__name__)
@@ -38,6 +39,16 @@ class SLAContract(resource.Resource):
     action = wtypes.text
 
 
+class SLAAlarm(resource.Resource):
+    """SLA alarm resource."""
+
+    current = wtypes.text
+    alarm_id = wtypes.text
+    reason = wtypes.text
+    #reason_data = wtypes.DictType
+    previous = wtypes.text
+
+
 class SLAContracts(resource.Resource):
     """SLA contract resource list."""
 
@@ -47,7 +58,7 @@ class SLAContracts(resource.Resource):
 class SLAContractController(rest.RestController):
 
     def __init__(self):
-        self.engine = SLAEngine()
+        self.engine = SLAContractEngine()
 
     @wsme_pecan.wsexpose(SLAContract, wtypes.text)
     def get(self, contract_id):
@@ -55,16 +66,16 @@ class SLAContractController(rest.RestController):
         return SLAContract.from_dict(contract_dict)
 
     @wsme_pecan.wsexpose(SLAContract, body=SLAContract, status_code=201)
-    def post(self, sla_contract):
+    def post(self, contract):
         ctx = utils.build_context(None, True)
-        contract_dict = self.engine.create(ctx, sla_contract.to_dict(), 120)
+        contract_dict = self.engine.create(ctx, contract.to_dict(), 120)
         return SLAContract.from_dict(contract_dict)
 
     @wsme_pecan.wsexpose(SLAContract, wtypes.text, body=SLAContract)
-    def put(self, id, sla_contract):
+    def put(self, id, contract):
         ctx = utils.build_context(None, True)
-        sla_contract.id = id
-        contract_dict = self.engine.update(ctx, sla_contract.to_dict(), 120)
+        contract.id = id
+        contract_dict = self.engine.update(ctx, contract.to_dict(), 120)
         return SLAContract.from_dict(contract_dict)
 
     @wsme_pecan.wsexpose(SLAContracts)
@@ -82,31 +93,21 @@ class SLAContractController(rest.RestController):
 
 class SLAAlarmingController(rest.RestController):
 
-    @wsme_pecan.wsexpose()
-    def get_all(self):
-        LOG.debug("Fetch SLAAlarming controller - get_all")
+    def __init__(self):
+        self.engine = SLAAlarmingEngine()
 
-    @wsme_pecan.wsexpose()
-    def get(self):
-        LOG.debug("Fetch SLAAlarming controller - get")
+    @wsme_pecan.wsexpose(wtypes.text, wtypes.text, wtypes.text, body=SLAAlarm)
+    def post(self, source, status, alarm):
+        ctx = utils.build_context(None, True)
+        if not status or not source:
+            abort(500, 'Status and Source are required')
+        if status == 'alarm':
+            self.engine.alert(ctx, alarm.alarm_id, source)
 
-    @wsme_pecan.wsexpose()
-    def post(self):
-        LOG.debug("Fetch SLAAlarming controller - post")
+        return self.engine.track_failure_get_all()
 
 
 class SLAController(rest.RestController):
-    @wsme_pecan.wsexpose()
-    def get_all(self):
-        LOG.debug("Fetch SLA controller - get_all")
-
-    @wsme_pecan.wsexpose()
-    def get(self):
-        LOG.debug("Fetch SLA controller - get")
-
-    @wsme_pecan.wsexpose()
-    def post(self):
-        LOG.debug("Fetch SLA controller - post")
 
     contract = SLAContractController()
     alarming = SLAAlarmingController()
