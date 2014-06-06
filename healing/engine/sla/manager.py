@@ -22,6 +22,7 @@ from healing.engine.alarms import manager as alarm_manager
 from healing.engine.alarms import ceilometer_alarms as cel_alarms
 from healing.objects.sla_contract import SLAContract as sla_contract
 from healing.objects.failure_track import FailureTrack as failure_track
+from healing.objects.alarm_track import AlarmTrack
 from healing.handler_plugins.action_data import ActionData
 from healing.handler_manager import get_plugin_handler as handler_manager
 from healing import utils
@@ -47,9 +48,9 @@ class SLAContractEngine():
         self._create_alarm(ctx, contract_saved.id, period)
         return contract_saved.to_dict()
 
-    def delete(self, ctx, contract_id, period):
+    def delete(self, ctx, contract_id):
         self._delete_alarm(ctx, contract_id)
-        sla_contract.delete(id)
+        sla_contract.delete(contract_id)
 
     def get(self, contract_id):
         contract = sla_contract.get_by_contract_id(contract_id)
@@ -60,21 +61,21 @@ class SLAContractEngine():
         contract_dicts = [contract.to_dict() for contract in contracts]
         return contract_dicts
 
-    @classmethod
-    def _delete_alarm(ctx, contract_id):
+    def _delete_alarm(self, ctx, contract_id):
         alarm = alarm_manager.get_by_contract_id(ctx, contract_id)
-        alarm.delete()
 
-    @classmethod
-    def _create_alarm(cls, ctx, contract_id, period):
+        if alarm:
+            alarm.delete()
+
+    def _create_alarm(self, ctx, contract_id, period):
         alarm = alarm_manager.alarm_build_by_type(ctx,
-                                    cls.HOST_DOWN_ALARM_TYPE,
+                                    self.HOST_DOWN_ALARM_TYPE,
                                     remote_alarm_id=None,
                                     contract_id=contract_id,
-                                    meter=cls.HOST_DOWN_ALARM_METER,
+                                    meter=self.HOST_DOWN_ALARM_METER,
                                     threshold=1,
                                     period=period,
-                                    operator=cls.HOST_DOWN_ALARM_OP,
+                                    operator=self.HOST_DOWN_ALARM_OP,
                                     query=None,
                                     alarm_object=None)
         alarm.create()
@@ -83,24 +84,37 @@ class SLAContractEngine():
 class SLAAlarmingEngine():
 
     def alert(self, ctx, alarm_id, source):
-        alarm = alarm_manager.get_by_id(ctx, alarm_id)
-        contract = sla_contract.get_by_contract_id(alarm.contract_id)
-        project = contract.project_id
+        alarm = alarm_manager.get_by_alarm_id(ctx, alarm_id)
+        if not alarm:
+            raise Exception('No Alarm found with id %s' % alarm_id)
+
+        contract_ids = AlarmTrack.get_contracts_by_alarm_id(alarm_id)
+        if not contract_ids:
+            return
+
+        contracts = [sla_contract.get_by_contract_id(contract_id)
+                     for contract_id in contract_ids]
+        projects = [contract.project_id for contract in contracts]
+        projects.sort(reverse=True)
+
         hosts = alarm.affected_resources(period=3, delta_seconds=120)
-        print(str(hosts))
         if not hosts:
             LOG.error('Not resources associated to the alarm')
+        self._track_failure(timeutils.utcnow(), alarm_id, str(hosts))
 
         vms = []
         client = utils.get_nova_client(ctx)
-
-        self._track_failure(timeutils.utcnow(), alarm_id, str(hosts))
+        if not client:
+            raise Exception('Error retrieving nova client')
 
         for host in hosts:
-            vms.append(utils.get_nova_vms(client, tenant_id=project, host=host))
+            for project in projects:
+                vms.append(utils.get_nova_vms(client, tenant_id=project,
+                                              host=host))
 
         for vm in vms:
-            action = ActionData('evacuate', source=source, target_resource=vm.id)
+            action = ActionData('evacuate', source=source,
+                                target_resource=vm.id)
             plugin = handler_manager.get_plugin('evacuate')
             plugin.start(ctx, action)
 

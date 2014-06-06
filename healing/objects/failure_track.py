@@ -11,7 +11,8 @@ class FailureTrack(base.HealingPersistentObject, base.HealingObject):
     fields = {'id': fields.StringField(),
               'time': fields.DateTimeField(),
               'alarm_id': fields.StringField(),
-              'data': fields.StringField(nullable=True)}
+              'data': fields.StringField(nullable=True),
+              'tracking_id': fields.StringField()}
 
     @staticmethod
     def _from_db_object(failure_track, db_failure_track):

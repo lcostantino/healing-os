@@ -38,6 +38,7 @@ class ActionsController(rest.RestController):
          # sample of get a context - in auth disabled will create
         # admin context from config file
         ctx = utils.get_context_req(pecan.request)
+        '''
         mg = get_plugin_handler()
         
         to_run = []
@@ -48,14 +49,12 @@ class ActionsController(rest.RestController):
                 
         print(mg.start_plugins_group(ctx, to_run))
                 
-                
-        #client = utils.get_ceilometer_client(ctx)
-        #print client.alarms.list()
-        """
-        from healing.engine import alarm
-        cm = alarm.CeilometerAlarm(ctx=ctx, contract_id='111', action='evacuate',
+           '''
+        client = utils.get_ceilometer_client(ctx)
+        print(client.alarms.list())
+
+        '''cm = alarm.CeilometerAlarm(ctx=ctx, contract_id='111', action='evacuate',
                              meter='cpu_util', threshold=1,
                              operator='eq',  period=10)
-        cm.create()
-        """
+        cm.create()'''
         return "actions"

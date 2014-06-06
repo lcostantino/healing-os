@@ -47,18 +47,18 @@ class CeilometerAlarm(alarm_base.AlarmBase):
     def set_default_alarm_hook(self, params=None):
         params = params or {}
         params['status'] = alarm_base.STATE_ALARM
-        self.hooks[alarm_base.ALARM_HOOK] = self._build_default_hook(params)
+        self.hooks[alarm_base.ALARM_HOOK] = [self._build_default_hook(params)]
 
     def set_default_ok_hook(self, params=None):
         params = params or {}
         params['status'] = alarm_base.STATE_OK
-        self.hooks[alarm_base.OK_HOOK] = self._build_default_hook(params)
+        self.hooks[alarm_base.OK_HOOK] = [self._build_default_hook(params)]
 
     def set_default_insufficient_hook(self, params=None):
         params = params or {}
         params['status'] = alarm_base.STATE_INSUFFICIENT
         self.hooks[alarm_base.INSUFFICIENT_HOOK] = \
-                                self._build_default_hook(params)
+                                [self._build_default_hook(params)]
 
     def set_ok_hook_url(self, url):
         self.hooks[alarm_base.OK_HOOK] = url

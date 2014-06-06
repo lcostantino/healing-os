@@ -47,6 +47,7 @@ def drop_db():
 def action_get(action_id):
     return IMPL.action_get(action_id)
 
+
 def action_get_by_name_and_target(name, target, updated_time_gt=None,
                                   status=None):
     filters = {'name': name,
@@ -55,8 +56,10 @@ def action_get_by_name_and_target(name, target, updated_time_gt=None,
         filters['status'] = status
     return IMPL.action_get_by_filter(filters, updated_time_gt=updated_time_gt)
 
+
 def action_get_by_filter(filters):
     return IMPL.action_get_by_filter(filters)
+
 
 def action_create(values):
     return IMPL.action_create(values)
@@ -69,12 +72,14 @@ def action_update(action_id, values):
 def action_delete(action_id):
     IMPL.action_delete(action_id)
 
+
 def actions_get_all(filters=None, order='-created-at'):
     if not filters:
         filters = {}
     return IMPL.actions_get_all(filters, order_by=order)
 
 ###SLA_CONTRACT###
+
 
 def sla_contract_get_by_project(project):
     return IMPL.sla_contract_get_by_project(project)
@@ -104,6 +109,7 @@ def sla_contract_get_all():
 def alarm_track_get(alarm_track_id):
     return IMPL.alarm_track_get(alarm_track_id)
 
+
 def alarm_track_get_by_name_and_target(name, target, updated_time_gt=None,
                                   status=None):
     filters = {'name': name,
@@ -112,8 +118,10 @@ def alarm_track_get_by_name_and_target(name, target, updated_time_gt=None,
         filters['status'] = status
     return IMPL.alarm_track_get_by_filter(filters, updated_time_gt=updated_time_gt)
 
+
 def alarm_track_get_by_filter(filters):
     return IMPL.alarm_track_get_by_filter(filters)
+
 
 def alarm_track_create(values):
     return IMPL.alarm_track_create(values)
@@ -125,6 +133,7 @@ def alarm_track_update(alarm_track_id, values):
 
 def alarm_track_delete(alarm_id):
     IMPL.alarm_track_delete(alarm_id)
+
 
 def alarm_tracks_get_all(filters=None, order='created_at'):
     if not filters:

@@ -45,7 +45,6 @@ class SLAAlarm(resource.Resource):
     current = wtypes.text
     alarm_id = wtypes.text
     reason = wtypes.text
-    #reason_data = wtypes.DictType
     previous = wtypes.text
 
 
@@ -60,26 +59,26 @@ class SLAContractController(rest.RestController):
     def __init__(self):
         self.engine = SLAContractEngine()
 
-    @wsme_pecan.wsexpose(SLAContract, wtypes.text)
-    def get(self, contract_id):
-        contract_dict = self.engine.get(contract_id)
-        return SLAContract.from_dict(contract_dict)
-
     @wsme_pecan.wsexpose(SLAContract, body=SLAContract, status_code=201)
     def post(self, contract):
         ctx = utils.build_context(None, True)
         contract_dict = self.engine.create(ctx, contract.to_dict(), 120)
         return SLAContract.from_dict(contract_dict)
 
+    @wsme_pecan.wsexpose(SLAContract, wtypes.text)
+    def get(self, contract_id):
+        contract_dict = self.engine.get(contract_id)
+        return SLAContract.from_dict(contract_dict)
+
     @wsme_pecan.wsexpose(SLAContract, wtypes.text, body=SLAContract)
-    def put(self, id, contract):
+    def put(self, contract_id, contract):
         ctx = utils.build_context(None, True)
-        contract.id = id
+        contract.id = contract_id
         contract_dict = self.engine.update(ctx, contract.to_dict(), 120)
         return SLAContract.from_dict(contract_dict)
 
     @wsme_pecan.wsexpose(SLAContracts)
-    def get(self):
+    def get_all(self):
         contract_dicts = self.engine.get_all()
         contracts = [SLAContract.from_dict(obj) for obj in contract_dicts]
 
@@ -88,7 +87,7 @@ class SLAContractController(rest.RestController):
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, id):
         ctx = utils.build_context(None, True)
-        self.engine.delete(id)
+        self.engine.delete(ctx, id)
 
 
 class SLAAlarmingController(rest.RestController):
