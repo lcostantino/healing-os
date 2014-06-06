@@ -1,3 +1,5 @@
+import six
+
 from keystoneclient import client as keystone_client
 from novaclient.v1_1 import client as nova_client
 from ceilometerclient import client as ceilometer_client
@@ -5,6 +7,7 @@ from ceilometerclient import client as ceilometer_client
 from healing import config
 from healing import context
 from healing import exceptions as exc
+from healing.openstack.common import jsonutils
 from healing.openstack.common import log as logging
 from healing.openstack.common import timeutils
 
@@ -36,12 +39,15 @@ def build_context(username=None, password=None,
 
 
 def context_from_headers(headers):
-    return context.Context(user_id=headers.get('X-User-Id'),
+    token = headers.get('X-Auth-Token')
+    catalog = jsonutils.loads(headers.get('X-Service-Catalog', {}))
+    ctx = context.Context(user_id=headers.get('X-User-Id'),
                            project=headers.get('X-Project-Name'),
-                           token=headers.get('X-Auth-Token'),
-                           service_catalog=headers.get('X-Service-Catalog'),
+                           token=token,
+                           service_catalog=catalog,
                            user=headers.get('X-User-Name'),
                            roles=headers.get('X-Roles', "").split(","))
+    return ctx
 
 
 def get_context_req(request, admin=True):
@@ -78,37 +84,51 @@ def get_auth_token(ctx, admin=True, refresh_token=False):
         raise exc.AuthorizationException()
 
 
-def get_endpoint_url(ctx, service='identity', endpoint_type='publicURL',
-                     version="v2", region=None):
+def get_endpoint_url(ctx, service='identity', endpoint_type='public',
+                     version="v3", region=None):
     """ TODO: Check how it works when X-Service-Catalog is in HEADERs on auth
         enabled. Probably this will fail.
         ADd version check
     """
     if not ctx.service_catalog:
         return None
+    if type(ctx.service_catalog) == list:
+        for ep in ctx.service_catalog:
+            if ep.get('type') != service:
+                continue
+            for available in ep.get('endpoints'):
+                if region and available.get('region') != region:
+                    continue
+                if available.get('interface') != endpoint_type:
+                    continue
+                return available.get('url')
 
-    for x in ctx.service_catalog.get(service):
-        if region and not x.get(region) == region:
-            continue
-        return x.get(endpoint_type)
+    else:
+        for x in ctx.service_catalog.get(service):
+            if region and not x.get('region') == region:
+                continue
+            if x.get('interface') != endpoint_type:
+                continue
+            return x.get('url')
     return None
 
 
 def get_keystone_client(auth_url, username=None, password=None,
-                        project_name=None, auth_token=None):
+                        project_name=None, auth_token=None, **kwargs):
     client = keystone_client.Client(username=username, password=password,
                                     project_name=project_name,
-                                    auth_token=auth_token, auth_url=auth_url)
+                                    token=auth_token, auth_url=auth_url,
+                                    **kwargs)
 
     return client
 
 
-def admin_keystone_client(project_name):
+def admin_keystone_client(project_name, **kwargs):
     auth_url = config.CONF.keystone.auth_uri
     client = get_keystone_client(username=config.CONF.keystone.admin_user,
                                  password=config.CONF.keystone.admin_password,
                                  project_name=project_name,
-                                 auth_url=auth_url)
+                                 auth_url=auth_url, **kwargs)
     client.management_url = auth_url
     return client
 
@@ -168,10 +188,9 @@ def get_nova_vms(client, tenant_id=None, host=None):
         search_opts['all_tenants'] = 1
     else:
         search_opts['tenant_id'] = tenant_id
-        
+
     if host:
         search_opts['host'] = host
-        
     res = client.servers.list(search_opts=search_opts)
     if res:
         for x in res:
@@ -179,7 +198,7 @@ def get_nova_vms(client, tenant_id=None, host=None):
                                              'vm_state': getattr(x, 'OS-EXT-STS:vm_state'),
                                              'power_state': getattr(x, 'OS-EXT-STS:power_state'),
                                              'name': x.name}
-    
+
     return res_by_tenant_id
-    
+
     pass

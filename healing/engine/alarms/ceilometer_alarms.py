@@ -212,10 +212,10 @@ class HostDownUniqueAlarm(CeilometerAlarm):
     def get_unique_alarm(self, refresh=False):
         if not self.unique_alarm_obj or refresh:
             try:
-                self.unique_alarm_obj = None
                 self.unique_alarm_obj = alarm_obj.AlarmTrack.get_by_type(
                                                             self.ALARM_TYPE)
             except exceptions.NotFoundException:
+                self.unique_alarm_obj = None
                 pass
 
         return self.unique_alarm_obj
@@ -325,11 +325,11 @@ class ResourceAlarm(CeilometerAlarm):
 
             if not self.hooks.get(alarm_base.ALARM_HOOK):
                 self.set_default_alarm_hook({'contract_id':
-                                             self.alarm_tract.contract_id})
+                                             self.alarm_track.contract_id})
 
             if self.options.get('project_id'):
                 self.add_query('project_id', self.options.get('project_id'))
-            else:
+            if self.options.get('resource_id'):
                 self.add_query('resource_id', self.options.get('resource_id'))
             # DO A WITH with autodelete if fail.. or move external_created
             # to parent...
