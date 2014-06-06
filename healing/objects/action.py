@@ -51,6 +51,13 @@ class Action(base.HealingPersistentObject, base.HealingObject):
                                             status=status)
         return cls._from_db_object(cls(), db_action)
 
+    @classmethod
+    def get_all_by_request_id(cls, req_id):
+        filter = {'request_id': req_id}
+        db_action = db_api.actions_get_all(filters=filters)
+        if not db_action:
+            return []
+        return [cls._from_db_object(cls(), x) for x in db_action]
 
     def _convert_json(self, data, to_object=True):
         if not data:
