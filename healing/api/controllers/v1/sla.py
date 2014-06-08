@@ -14,8 +14,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import pecan
 from pecan import abort
 from pecan import rest
+import six
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
@@ -23,8 +25,8 @@ from healing import utils
 from healing.api.controllers import resource
 from healing.engine.sla.manager import SLAContractEngine
 from healing.engine.sla.manager import SLAAlarmingEngine
+from healing.openstack.common import jsonutils
 from healing.openstack.common import log as logging
-
 
 LOG = logging.getLogger(__name__)
 
@@ -37,6 +39,8 @@ class SLAContract(resource.Resource):
     type = wtypes.text
     value = wtypes.text
     action = wtypes.text
+    resource_id = wtypes.text
+    alarm_data = wtypes.text
 
 
 class SLAAlarm(resource.Resource):
@@ -62,7 +66,7 @@ class SLAContractController(rest.RestController):
     @wsme_pecan.wsexpose(SLAContract, body=SLAContract, status_code=201)
     def post(self, contract):
         ctx = utils.build_context(None, True)
-        contract_dict = self.engine.create(ctx, contract.to_dict(), 120)
+        contract_dict = self.engine.create(ctx, contract.to_dict())
         return SLAContract.from_dict(contract_dict)
 
     @wsme_pecan.wsexpose(SLAContract, wtypes.text)
@@ -74,7 +78,7 @@ class SLAContractController(rest.RestController):
     def put(self, contract_id, contract):
         ctx = utils.build_context(None, True)
         contract.id = contract_id
-        contract_dict = self.engine.update(ctx, contract.to_dict(), 120)
+        contract_dict = self.engine.update(ctx, contract.to_dict())
         return SLAContract.from_dict(contract_dict)
 
     @wsme_pecan.wsexpose(SLAContracts)
@@ -95,11 +99,25 @@ class SLAAlarmingController(rest.RestController):
     def __init__(self):
         self.engine = SLAAlarmingEngine()
 
-    @wsme_pecan.wsexpose(wtypes.text, wtypes.text, wtypes.text, body=SLAAlarm)
-    def post(self, source, status, alarm):
+    @pecan.expose()
+    def post(self):
+        """
+        ceilometer don't send content-type, so need to parse it manually
+        just in case.
+        There should be a way for this, but it can be dynamic based
+        on source. Still need to look for, since we miss the mime type
+        handled by wsme
+        """
+        source = pecan.request.GET.get('source')
+        status = pecan.request.GET.get('status')
+        body = six.moves.urllib_parse.unquote_plus(pecan.request.body)
+        if body and body[-1] == '=':
+            body = body[:-1]
+        #validate body
         ctx = utils.build_context(None, True)
         if not status or not source:
-            abort(500, 'Status and Source are required')
+            abort(400, 'Status and Source are required')
+        alarm = jsonutils.loads(body)
         if status == 'alarm':
             self.engine.alert(ctx, alarm.alarm_id, source)
 

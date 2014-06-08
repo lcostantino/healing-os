@@ -58,7 +58,6 @@ class ParsableErrorMiddleware(object):
         # Request for this state, modified by replace_start_response()
         # and used when an error is being reported.
         state = {}
-
         def replacement_start_response(status, headers, exc_info=None):
             """Overrides the default response to make errors parsable.
             """

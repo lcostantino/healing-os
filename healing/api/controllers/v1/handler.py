@@ -71,7 +71,6 @@ class HandlersController(rest.RestController):
         manager = get_plugin_handler()
         try:
             plugin = manager.check_plugin_name(name)
-
             conversor = data_convert.FormatterBase.get_formatter(source)
 
         except exceptions.InvalidSourceException as e:

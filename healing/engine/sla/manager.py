@@ -14,10 +14,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import time
-
+from healing.openstack.common import jsonutils
 from healing.openstack.common import log as logging
 from healing.openstack.common import timeutils
+from healing import exceptions as exc
 from healing.engine.alarms import manager as alarm_manager
 from healing.engine.alarms import ceilometer_alarms as cel_alarms
 from healing.objects.sla_contract import SLAContract as sla_contract
@@ -29,23 +29,51 @@ from healing import utils
 
 LOG = logging.getLogger(__name__)
 
+SLA_TYPES = {'HOST_DOWN': {'alarm': cel_alarms.HostDownUniqueAlarm.ALARM_TYPE,
+                           'options': {'meter': 'services.compute_host.down',
+                                       'operator': 'eq',
+                                       'threshold': 1,
+                                       'repeatable': True},
+                           'override': False},
+             'RESOURCE': {'alarm': cel_alarms.ResourceAlarm.ALARM_TYPE,
+                          'override': True,
+                          'options': None}
+            }
+
+def validate_contract_info(contract_dict, update=False):
+    ctype = contract_dict.get('type')
+    if not update or ctype:
+        if not ctype in SLA_TYPES:
+            raise exc.InvalidDataException('Invalid or missing type')
+    try:
+        if not update or contract_dict.get('action'):
+            handler_manager().check_plugin_name(contract_dict.get('action'))
+    except Exception as e:
+        LOG.exception(e)
+        raise exc.InvalidDataException('Action not valid or available')
 
 class SLAContractEngine():
-
     HOST_DOWN_ALARM_TYPE = cel_alarms.HostDownUniqueAlarm.ALARM_TYPE
     HOST_DOWN_ALARM_METER = 'services.compute_host.down'
     HOST_DOWN_ALARM_OP = 'eq'
 
-    def create(self, ctx, contract_dict, period):
+    def create(self, ctx, contract_dict):
+        validate_contract_info(contract_dict)
+        # WARN: IF PROJECT_ID NULL AND RESOURCE_ID NULL DO NOt ALLOw
+        # TO CONTRACTS FOR 'ALL' on the same ALARM tyPE
         contract_created = sla_contract.from_dict(contract_dict).create()
-
-        self._create_alarm(ctx, contract_created.id, period)
+        try:
+            self._create_alarm(ctx, contract_created,
+                               contract_dict.get('alarm_data'))
+        except Exception:
+            contract_created.delete(contract_created.id)
+            raise
         return contract_created.to_dict()
 
-    def update(self, ctx, contract_dict, period):
+    def update(self, ctx, contract_dict):
+        validate_contract_info(contract_dict, update=True)
         contract_saved = sla_contract.from_dict(contract_dict).save()
-
-        self._create_alarm(ctx, contract_saved.id, period)
+        self._update_alarm(ctx, contract_saved, contract_dict.get('alarm_data'))
         return contract_saved.to_dict()
 
     def delete(self, ctx, contract_id):
@@ -67,17 +95,44 @@ class SLAContractEngine():
         if alarm:
             alarm.delete()
 
-    def _create_alarm(self, ctx, contract_id, period):
+    def _parse_alarm_opts(self, ctx, alarm_type, alarm_data, update=False):
+        al_type = SLA_TYPES.get(alarm_type)
+        additional_info = {}
+        if alarm_data:
+            try:
+                additional_info = jsonutils.loads(alarm_data)
+            except Exception as e:
+                LOG.error(e)
+                pass
+        if not additional_info and not update:
+            # to avoid writing the same values
+            if not al_type.get('override', False):
+                additional_info.update(al_type.get('options'))
+        additional_info.pop('id', None)
+        return (al_type.get('alarm'), additional_info)
+
+    def _update_alarm(self, ctx, contract_obj, alarm_data):
+        # do we want this here? or just call alarm update api?
+        # change client to pass alarm_data
+        (al_type, additional_info) = self._parse_alarm_opts(ctx,
+                                                            contract_obj.type,
+                                                            alarm_data,
+                                                            update=True)
+        alarm = alarm_manager.get_by_contract_id(ctx, contract_obj.id)
+        if alarm and additional_info:
+            alarm.set_from_dict(additional_info)
+            alarm.update()
+
+    def _create_alarm(self, ctx, contract_obj, alarm_data):
+        (al_type, additional_info) = self._parse_alarm_opts(ctx,
+                                                            contract_obj.type,
+                                                            alarm_data)
         alarm = alarm_manager.alarm_build_by_type(ctx,
-                                    self.HOST_DOWN_ALARM_TYPE,
+                                    al_type,
                                     remote_alarm_id=None,
-                                    contract_id=contract_id,
-                                    meter=self.HOST_DOWN_ALARM_METER,
-                                    threshold=1,
-                                    period=period,
-                                    operator=self.HOST_DOWN_ALARM_OP,
-                                    query=None,
-                                    alarm_object=None)
+                                    contract_id=contract_obj.id,
+                                    alarm_object=None,
+                                    **additional_info)
         alarm.create()
 
 
@@ -86,7 +141,7 @@ class SLAAlarmingEngine():
     def alert(self, ctx, alarm_id, source):
         alarm = alarm_manager.get_by_alarm_id(ctx, alarm_id)
         if not alarm:
-            raise Exception('No Alarm found with id %s' % alarm_id)
+            raise exc.NotFoundException('No Alarm found with id %s' % alarm_id)
 
         contract_ids = AlarmTrack.get_contracts_by_alarm_id(alarm_id)
         if not contract_ids:
@@ -100,7 +155,10 @@ class SLAAlarmingEngine():
         hosts = alarm.affected_resources(period=3, delta_seconds=120)
         if not hosts:
             LOG.error('Not resources associated to the alarm')
-        self._track_failure(timeutils.utcnow(), alarm_id, str(hosts))
+            return
+
+        failure_id = self._track_failure(timeutils.utcnow(), alarm_id,
+                                         str(hosts))
 
         vms = []
         client = utils.get_nova_client(ctx)
@@ -114,18 +172,19 @@ class SLAAlarmingEngine():
 
         for vm in vms:
             action = ActionData('evacuate', source=source,
-                                target_resource=vm.id)
+                                request_id=failure_id,
+                                target_resource=vm.id,)
             plugin = handler_manager.get_plugin('evacuate')
             plugin.start(ctx, action)
 
     @classmethod
-    def _track_failure(time, alarm_id, data):
+    def _track_failure(time_utc, alarm_id, data):
         failure = failure_track()
-        failure.time = time
+        failure.time = time_utc
         failure.alarm_id = alarm_id
         failure.data = data
-
         failure.create()
+        return failure.id
 
     @classmethod
     def track_failure_get_all(self):

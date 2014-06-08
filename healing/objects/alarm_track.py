@@ -49,6 +49,12 @@ class AlarmTrack(base.HealingPersistentObject, base.HealingObject):
             values[key] = self[key]
         return values
 
+    def update_from_dict(self, data):
+        non_update = ['id', 'contract_id', 'alarm_id', 'type']
+        for x,value in data.iteritems():
+            if x not in non_update:
+                self[x] = value
+
     @classmethod
     def get_by_id(cls, alarm_track_id):
         db_alarm_track = db_api.alarm_track_get(alarm_track_id)

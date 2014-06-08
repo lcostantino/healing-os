@@ -45,6 +45,7 @@ def get_by_id(ctx, alarm_track_id, kwargs=None):
         return cls(ctx=ctx, alarm_object=obj, kwargs=kwargs)
     except Exception as e:
         LOG.exception(e)
+        #TODO: throw AlarmNotFound!
         return None
 
 def get_by_alarm_id(ctx, alarm_id, kwargs=None):

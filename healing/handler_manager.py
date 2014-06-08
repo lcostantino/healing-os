@@ -88,7 +88,7 @@ class HandlerManager(object):
         This will wait till all threads finish, so be carefull
         on handling to long the request until the async version
         is ready.
-        
+
         Return number of executions
         """
         run_plugins = []
@@ -124,7 +124,7 @@ class HandlerManager(object):
             raise exceptions.CannotStartPlugin(name=name)
 
         return None
-    
+
     def start_plugin(self, name, *args, **kwargs):
         """
         Call start , check restrictions
@@ -147,7 +147,7 @@ class HandlerManager(object):
         try:
             return self.mgr[name].plugin
         except Exception:
-            raise
+            raise exceptions.NotFoundException('Plugin %s not found' % name)
 
     def run_restriction(self, name, *args, **kwargs):
         """ If false, restriction not passed."""

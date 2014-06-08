@@ -51,7 +51,7 @@ class Action(mb.HealingBase):
     project_id = sa.Column(sa.String(80), nullable=True)
     request_id = sa.Column(sa.String(80), nullable=True)
     internal_data = sa.Column(sa.String(200), nullable=True)
-
+    output = sa.Column(sa.Text(), nullable=True)
 
 class SLAContract(mb.HealingBase):
     """Contains info about the SLA contracts."""
@@ -67,7 +67,7 @@ class SLAContract(mb.HealingBase):
     type = sa.Column(sa.String(255), nullable=True)
     value = sa.Column(sa.String(255), nullable=True)
     action = sa.Column(sa.String(255), nullable=True)
-
+    resource_id = sa.Column(sa.String(255), nullable=True)
 
 class AlarmTrack(mb.HealingBase):
     """Contains info about the ALARMs."""

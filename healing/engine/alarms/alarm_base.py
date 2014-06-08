@@ -60,7 +60,7 @@ class AlarmBase(object):
 
     def __init__(self, ctx, remote_alarm_id=None,
                  contract_id=None, meter="dummy",
-                 threshold=0, period=10, operator="eq",
+                 threshold=0, period=120, operator="eq",
                  query=None, alarm_object=None, evaluation_period=1,
                  statistic='avg', **kwargs):
         """
@@ -148,7 +148,7 @@ class AlarmBase(object):
     @period.setter
     def period(self, val):
         self.alarm_track.period = val
-    
+
     @property
     def statistic(self):
         return self.alarm_track.statistic
@@ -156,7 +156,7 @@ class AlarmBase(object):
     @statistic.setter
     def statistic(self, val):
         self.alarm_track.statistic = val
-    
+
     @property
     def evaluation_period(self):
         return self.alarm_track.evaluation_period
@@ -180,6 +180,13 @@ class AlarmBase(object):
     @abc.abstractmethod
     def create(self):
         pass
+
+    def set_from_dict(self, update_dict):
+        for x in alarm_obj.AlarmTrack.fields.keys():
+            present = update_dict.get(x)
+            if present:
+                #to avoid change_fields being modified
+                setattr(self, x, present)
 
     @abc.abstractmethod
     def update(self):

@@ -8,3 +8,7 @@ poner jsonschema ! aplicar despues
 - updated_at not right in sqlite, test mysql. if we add fields in objects it should be fixed
 - add actionlist
 
+
+
+
+- en db api, seter en Context un session y pasarlo para no crear varias sesiones en la db

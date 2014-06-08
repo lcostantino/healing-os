@@ -12,7 +12,8 @@ class SLAContract(base.HealingPersistentObject, base.HealingObject):
               'project_id': fields.StringField(nullable=True),
               'type': fields.StringField(),
               'value': fields.StringField(nullable=True),
-              'action': fields.StringField()}
+              'action': fields.StringField(),
+              'resource_id': fields.StringField(nullable=True)}
 
     @staticmethod
     def _from_db_object(sla_contract, db_sla_contract):

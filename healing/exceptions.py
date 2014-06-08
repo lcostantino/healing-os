@@ -24,8 +24,7 @@ class HealingException(Exception):
     a 'message' and 'code' properties.
     """
     GENERIC_MESSAGE = "An unknown exception occurred"
-    code = "HEALING_EXCEPTION"
-    return_code = 500
+    code = 500
 
     def __str__(self):
         return self.message
@@ -64,29 +63,26 @@ class InvalidActionException(HealingException):
 
 class InvalidDataException(HealingException):
     message = "Invalid action data"
-    code = "INVALID_ACTION_DATA"
-
+    code = 400
 
 class AuthorizationException(HealingException):
     message = "Invalid credentials / token"
-    code = "INVALID_AUTH"
+    
 
 
 class ActionInProgress(HealingException):
     message = "Action in progress or in time range"
-    code = 'ACTION_IN_PROGRESS'
-    return_code = 202
-
-
+    code = 202
+    
+    
 class CannotStartPlugin(HealingException):
     message = "Plugin %(name)s cannot be started"
     code = 'PLUGIN_ERROR'
-    
+
     def __init__(self, name):
-        
         message = self.message % {'name': name}
         super(CannotStartPlugin, self).__init__(message=message)
-        
+
 
 class AlarmCreateOrUpdateException(HealingException):
     message = "Error creating/updating alarms"
@@ -94,4 +90,4 @@ class AlarmCreateOrUpdateException(HealingException):
 
 class ExternalAlarmAlreadyExists(HealingException):
     message = "Duplicated alarm"
-    code = "ALARM_ALREADY_EXIST_ERROR"
+    code = 409
