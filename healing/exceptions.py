@@ -41,7 +41,7 @@ class DataAccessException(HealingException):
 
 class NotFoundException(HealingException):
     message = "Object not found"
-
+    code = 400
 
 class InvalidSourceException(HealingException):
     message = "Source formatter invalid"
@@ -67,14 +67,14 @@ class InvalidDataException(HealingException):
 
 class AuthorizationException(HealingException):
     message = "Invalid credentials / token"
-    
+
 
 
 class ActionInProgress(HealingException):
     message = "Action in progress or in time range"
     code = 202
-    
-    
+
+
 class CannotStartPlugin(HealingException):
     message = "Plugin %(name)s cannot be started"
     code = 'PLUGIN_ERROR'

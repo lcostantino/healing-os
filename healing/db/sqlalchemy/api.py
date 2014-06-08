@@ -180,7 +180,7 @@ def sla_contract_get_by_id(sla_contract_id):
     query = model_query(m.SLAContract)
     obj = query.filter_by(id=sla_contract_id).first()
     if not obj:
-        raise exc.NotFoundException()
+        raise exc.NotFoundException('SLA Contract not found')
     return obj
 
 
@@ -279,8 +279,10 @@ def alarm_tracks_get_all(filters=None, order='created_at'):
 
 def _alarm_tracks_get_all(filters, order='-created_at'):
     query = model_query(m.AlarmTrack)
-    return query.filter_by(**filters).order_by(get_order(order)).all()
-
+    res = query.filter_by(**filters).order_by(get_order(order)).all()
+    if not res:
+        raise exc.NotFoundException('alarms not found for filters')
+    return res
 
 def alarm_track_get_by_filter(filters):
     """

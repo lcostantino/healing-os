@@ -40,16 +40,12 @@ class ActionsController(rest.RestController):
         ctx = utils.get_context_req(pecan.request)
         '''
         mg = get_plugin_handler()
-        
+
         to_run = []
         for x in range(1,10):
             to_run.append(base.ActionData(name='evacuate', target_resource='s', data={}))
-                
-                
-                
         print(mg.start_plugins_group(ctx, to_run))
-                
-           '''
+        '''
         client = utils.get_ceilometer_client(ctx)
         print(client.alarms.list())
 

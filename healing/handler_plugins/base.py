@@ -72,5 +72,8 @@ class HandlerPluginBase(object):
         action.action_meta_obj = data.action_meta or {}
         action.target_id = data.target_resource
         action.status = action_obj.ACTION_STARTED
-        self.current_action = action.create()
+        action.request_id = data.request_id
+        action.create()
+        self.current_action = action
+
 #get_name mandatory?

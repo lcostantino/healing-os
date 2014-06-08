@@ -65,10 +65,8 @@ def get_context_req(request, admin=True):
 def get_auth_token(ctx, admin=True, refresh_token=False):
     if ctx.token and not refresh_token:
         return
-
     ctx.token = None
     #todo: user token o impersonate
-    # REPLCE USERNAME with The user RETURNED By KEYSTONE
 
     if admin:
         client = admin_keystone_client('admin')
@@ -104,7 +102,7 @@ def get_endpoint_url(ctx, service='identity', endpoint_type='public',
                 return available.get('url')
 
     else:
-        for x in ctx.service_catalog.get(service):
+        for x in ctx.service_catalog.get(service, {}):
             if region and not x.get('region') == region:
                 continue
             if x.get('interface') != endpoint_type:
@@ -134,10 +132,12 @@ def admin_keystone_client(project_name, **kwargs):
 
 
 def get_nova_client(ctx):
+    url = config.CONF.keystone.auth_uri
     client = nova_client.Client(ctx.user, ctx.user_id, ctx.project,
                                 auth_token=ctx.token,
-                                auth_url=config.CONF.keystone.auth_uri)
-    client.management_url = config.CONF.keystone.auth_uri
+                                auth_url=url,
+                                bypass_url=get_endpoint_url(ctx,
+                                                            service='compute'))
     return client
 
 
@@ -194,11 +194,12 @@ def get_nova_vms(client, tenant_id=None, host=None):
     res = client.servers.list(search_opts=search_opts)
     if res:
         for x in res:
-            res_by_tenant_id[x.tenant_id] = {'id': x.id,
-                                             'vm_state': getattr(x, 'OS-EXT-STS:vm_state'),
-                                             'power_state': getattr(x, 'OS-EXT-STS:power_state'),
-                                             'name': x.name}
-
+            if not res_by_tenant_id.get(x.tenant_id):
+                res_by_tenant_id[x.tenant_id] = []
+            res_by_tenant_id[x.tenant_id].append({'id': x.id,
+                                'vm_state': getattr(x, 'OS-EXT-STS:vm_state'),
+                                'power_state': getattr(x, 'OS-EXT-STS:power_state'),
+                                'name': x.name})
     return res_by_tenant_id
 
     pass
