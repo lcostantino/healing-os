@@ -132,7 +132,7 @@ def action_get(action_id):
     return _action_get(action_id)
 
 
-def actions_get_all(filters=None):
+def actions_get_all(filters=None, order='-created_at'):
     if not filters:
         filters = {}
     return _actions_get_all(filters)

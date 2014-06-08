@@ -8,6 +8,7 @@ from healing import config
 from healing import context
 from healing import exceptions as exc
 from healing.openstack.common import jsonutils
+from healing.openstack.common import memorycache
 from healing.openstack.common import log as logging
 from healing.openstack.common import timeutils
 
@@ -203,3 +204,32 @@ def get_nova_vms(client, tenant_id=None, host=None):
     return res_by_tenant_id
 
     pass
+
+
+_CACHE_TIME = 2 * 60
+_CACHE = None
+
+
+def get_cache_client():
+    global _CACHE
+    if not _CACHE:
+        _CACHE = memorycache.get_client()
+    return _CACHE
+
+
+def set_cache_value(resource, resource_type='host', value=1,
+                    time=_CACHE_TIME):
+    key = '%s_%s' % (resource, resource_type)
+
+    get_cache_client().set(key, value, time)
+
+
+def get_cache_value(resource, resource_type='host'):
+    key = '%s_%s' % (resource, resource_type)
+    return get_cache_client().get(key)
+
+
+def reset_cache():
+    global _CACHE
+    _CACHE = None
+

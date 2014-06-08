@@ -138,26 +138,63 @@ class SLAContractEngine():
 
 
 class SLAAlarmingEngine():
+    def _process_resource_alarm(self, ctx, alarm, contract, source):
+        """ Untested."""
+        resource = [contract.resource_id]
+        project = contract.project_id
+        if not resource:
+            resources = [project]
+
+        failure_id = self._track_failure(timeutils.utcnow(), alarm.alarm_id,
+                                         str(resources))
+        if not contract.resource_id:
+            time_frame = (alarm.period * alarm.evaluation_period) #* 2
+            resources = alarm.affected_resources(period=alarm.period,
+                                    delta_seconds=time_frame,
+                                    result_process=filters.FormatResources)
+        if not resources:
+            LOG.warning('No resource found on ResourceAlarm %s'
+                        % alarm.alarm_id)
+            return ""
+
+        for x in resources:
+            actions.append(ActionData(name=contract.action,
+                                      source=source,
+                                      request_id=failure_id,
+                                      target_resource=x))
+        if actions:
+            handler_manager().start_plugins_group(ctx, actions)
+        # WARN: we may want to change state alarm now if it's tenant
+        # scoped, so it get repeated?
 
     def _process_host_down_alarm(self, ctx, alarm, contracts, source):
 
-        time_frame = (alarm.period * alarm.evaluation_period) * 2
+        time_frame = (alarm.period * alarm.evaluation_period) #* 2
+        # we use the cache to avoid hosts processed in the last time
+        # can be dne with filter periods, but we may loose
+        # hosts that we failed to process for other reaons
         resources = alarm.affected_resources(period=alarm.period,
                             delta_seconds=time_frame,
                             result_process=filters.FormatResources)
+        if resources:
+            resources = [x for x in resources if
+                         not utils.get_cache_value(x)]
+            LOG.debug('Resources after cache check %s' % str(resources))
+
         if not resources:
             LOG.warning('no affected resources associated to the alarm '
-                      'in time frame seconds: %s' % time_frame)
+                        'in time frame seconds: %s' % time_frame)
             return
+
         failure_id = self._track_failure(timeutils.utcnow(), alarm.alarm_id,
                                          str(resources))
         client = utils.get_nova_client(ctx)
         vms_by_tenant = {}
-        #resources = set(['ubuntu-SVT13125CLS'])
         # WARN; if fails and filtered by statistics we may never act
         # again on host we think we did...
         for host in resources:
             try:
+                # any particular state? Running only?
                 vms_by_tenant.update(utils.get_nova_vms(client, host=host))
             except Exception as e:
                 LOG.exception(e)
@@ -186,6 +223,8 @@ class SLAAlarmingEngine():
                                               source=source,
                                               request_id=failure_id,
                                               target_resource=vm['id']))
+        for x in resources:
+            utils.set_cache_value(x)
 
         if actions:
             handler_manager().start_plugins_group(ctx, actions)
@@ -205,7 +244,8 @@ class SLAAlarmingEngine():
 
         if alarm.type == SLA_TYPES['HOST_DOWN']['alarm']:
             return self._process_host_down_alarm(ctx, alarm, contracts, source)
-
+        else:
+            return self._process_resource_alarm(ctx, alarm, contracts, source)
 
     def _track_failure(self, time_utc, alarm_id, data):
         failure = failure_track()

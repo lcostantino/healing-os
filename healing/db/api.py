@@ -76,7 +76,7 @@ def action_delete(action_id):
 def actions_get_all(filters=None, order='-created-at'):
     if not filters:
         filters = {}
-    return IMPL.actions_get_all(filters, order_by=order)
+    return IMPL.actions_get_all(filters, order=order)
 
 ###SLA_CONTRACT###
 

@@ -23,6 +23,7 @@ import wsmeext.pecan as wsme_pecan
 
 from healing import utils
 from healing.api.controllers import resource
+from healing.api.controllers.v1 import action
 from healing.engine.sla.manager import SLAContractEngine
 from healing.engine.sla.manager import SLAAlarmingEngine
 from healing.openstack.common import jsonutils
@@ -136,8 +137,7 @@ class SLAAlarmingController(rest.RestController):
         alarm = jsonutils.loads(body)
         if status == 'alarm':
             self.engine.alert(ctx, alarm.get('alarm_id'), source)
-
-        return self.engine.track_failure_get_all()
+        return ""
 
 
 class SLATrackingController(rest.RestController):
@@ -158,4 +158,4 @@ class SLAController(rest.RestController):
     contract = SLAContractController()
     alarming = SLAAlarmingController()
     tracking = SLATrackingController()
-
+    actions = action.ActionsController()

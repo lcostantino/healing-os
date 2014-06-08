@@ -17,40 +17,48 @@
 import pecan
 from pecan import rest
 import wsmeext.pecan as wsme_pecan
+from wsme import types as wtypes
 
 from healing.openstack.common import log as logging
 
-
+from healing.api.controllers import resource
 from healing import exceptions
-from healing.handler_manager import get_plugin_handler
-from healing.handler_plugins import base
-from healing import data_convert
+from healing.objects import action
 from healing import utils
 from healing import context
 
 LOG = logging.getLogger(__name__)
 
+class ActionResource(resource.Resource):
+    """Action Resource."""
+
+    id = wtypes.text
+    created_at = wtypes.datetime.datetime
+    name = wtypes.text
+    status = wtypes.text
+    request_id = wtypes.text
+    output = wtypes.text
+    action_meta = wtypes.text
+    project_id = wtypes.text
+    target_id = wtypes.text
+
+
+class ActionList(resource.Resource):
+    actions = [ActionResource]
+
+
 class ActionsController(rest.RestController):
 
-    @wsme_pecan.wsexpose()
-    def get_all(self):
-        LOG.debug("List actions --- ")
-         # sample of get a context - in auth disabled will create
-        # admin context from config file
+    @wsme_pecan.wsexpose(ActionList, wtypes.text, wtypes.text)
+    def get_all(self, request_id=None, name=None):
         ctx = utils.get_context_req(pecan.request)
-        '''
-        mg = get_plugin_handler()
+        if request_id:
+            ret = action.Action.get_all_by_request_id(request_id)
+        elif name:
+            ret = action.Action.get_all_by_name(name)
+        else:
+            # TODO: do a limit then... and pagination
+            ret = action.Action.get_all()
 
-        to_run = []
-        for x in range(1,10):
-            to_run.append(base.ActionData(name='evacuate', target_resource='s', data={}))
-        print(mg.start_plugins_group(ctx, to_run))
-        '''
-        client = utils.get_ceilometer_client(ctx)
-        print(client.alarms.list())
-
-        '''cm = alarm.CeilometerAlarm(ctx=ctx, contract_id='111', action='evacuate',
-                             meter='cpu_util', threshold=1,
-                             operator='eq',  period=10)
-        cm.create()'''
-        return "actions"
+        actions =  [ActionResource.from_obj(x) for x in ret]
+        return ActionList(actions=actions)

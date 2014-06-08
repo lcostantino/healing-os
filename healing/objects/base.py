@@ -124,13 +124,13 @@ class HealingObject(object):
         """
         return cls.__name__
 
-    
+
     def obj_clone(self):
         return copy.deepcopy(self)
-    
+
     def create(self):
         raise NotImplementedError('Cannot create anything in the base class')
-    
+
 
     def save(self):
         raise NotImplementedError('Cannot save anything in the base class')
@@ -181,7 +181,7 @@ class HealingObject(object):
         be useful for future load operations.
         """
         raise NotImplementedError(_("Cannot load '%s' in the base class") % attrname)
-                                                    
+
     @property
     def obj_fields(self):
         return self.fields.keys() + self.obj_extra_fields
@@ -231,6 +231,11 @@ class HealingObject(object):
         for key, value in updates.items():
             self[key] = value
 
+    def to_dict(self):
+        ret = {}
+        for x in self.fields.keys():
+            ret[x] = getattr(self, x, None)
+        return ret
 
 class HealingPersistentObject(object):
     """Mixin class for Persistent objects.

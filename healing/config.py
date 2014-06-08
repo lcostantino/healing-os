@@ -22,6 +22,7 @@ from oslo.config import cfg
 from keystoneclient.middleware import auth_token
 
 from healing.openstack.common import log
+from healing.openstack.common import memorycache
 from healing import version
 
 api_opts = [

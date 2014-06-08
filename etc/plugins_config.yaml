@@ -4,7 +4,7 @@ plugins:
       - name: "actionstatus"
       - name: "timeinterval"
         config:
-          interval: "10"
+          interval: "15"
   - name: "*"
     restrictions:
       - name: "actionstatus"

@@ -37,10 +37,19 @@ class Resource(wtypes.Base):
     def from_dict(cls, d):
         # TODO: take care of nested resources
         obj = cls()
-
         for key, val in d.items():
             if hasattr(obj, key):
                 setattr(obj, key, val)
+
+        return obj
+
+    @classmethod
+    def from_obj(cls, d):
+        # TODO: take care of nested resources
+        obj = cls()
+        for key  in d.fields.keys():
+            if hasattr(obj, key):
+                setattr(obj, key, getattr(d, key, None))
 
         return obj
 
