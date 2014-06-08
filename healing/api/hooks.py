@@ -19,6 +19,7 @@
 
 import six
 import threading
+import webob
 
 from oslo.config import cfg
 from pecan import hooks
@@ -68,4 +69,4 @@ class CustomErrorHook(hooks.PecanHook):
         if isinstance(exc, exceptions.AuthorizationException):
             return webob.Response('Not Authorized', status=401)
         if isinstance(exc, exceptions.HealingException):
-            return webob.Response(six.text_type(exc), status=exc.return_code)
+            return webob.Response(six.text_type(exc), status=exc.code)

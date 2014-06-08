@@ -130,12 +130,12 @@ class SLAAlarmingController(rest.RestController):
         if body and body[-1] == '=':
             body = body[:-1]
         #validate body
-        ctx = utils.build_context(None, True)
+        ctx = utils.get_context_req(pecan.request)
         if not status or not source:
             abort(400, 'Status and Source are required')
         alarm = jsonutils.loads(body)
         if status == 'alarm':
-            self.engine.alert(ctx, alarm.alarm_id, source)
+            self.engine.alert(ctx, alarm.get('alarm_id'), source)
 
         return self.engine.track_failure_get_all()
 

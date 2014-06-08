@@ -28,7 +28,8 @@ class Action(base.HealingPersistentObject, base.HealingObject):
               'target_id': fields.StringField(),
               'request_id': fields.StringField(nullable=True),
               'project_id': fields.StringField(nullable=True),
-              'internal_data': fields.StringField(nullable=True)}
+              'internal_data': fields.StringField(nullable=True),
+              'output': fields.StringField(nullable=True)}
 
     @staticmethod
     def _from_db_object(action, db_action):

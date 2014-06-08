@@ -18,6 +18,7 @@ from healing.openstack.common import jsonutils
 from healing.openstack.common import log as logging
 from healing.openstack.common import timeutils
 from healing import exceptions as exc
+from healing.engine.alarms import filters
 from healing.engine.alarms import manager as alarm_manager
 from healing.engine.alarms import ceilometer_alarms as cel_alarms
 from healing.objects.sla_contract import SLAContract as sla_contract
@@ -138,47 +139,75 @@ class SLAContractEngine():
 
 class SLAAlarmingEngine():
 
+    def _process_host_down_alarm(self, ctx, alarm, contracts, source):
+
+        time_frame = (alarm.period * alarm.evaluation_period) * 2
+        resources = alarm.affected_resources(period=alarm.period,
+                            delta_seconds=time_frame,
+                            result_process=filters.FormatResources)
+        if not resources:
+            LOG.warning('no affected resources associated to the alarm '
+                      'in time frame seconds: %s' % time_frame)
+            return
+        failure_id = self._track_failure(timeutils.utcnow(), alarm.alarm_id,
+                                         str(resources))
+        client = utils.get_nova_client(ctx)
+        vms_by_tenant = {}
+        #resources = set(['ubuntu-SVT13125CLS'])
+        # WARN; if fails and filtered by statistics we may never act
+        # again on host we think we did...
+        for host in resources:
+            try:
+                vms_by_tenant.update(utils.get_nova_vms(client, host=host))
+            except Exception as e:
+                LOG.exception(e)
+                continue
+        # specific contracts
+        spec_contract_actions = {}
+        generic_contract = False
+        for x in contracts:
+            if x.project_id is not None:
+                spec_contract_actions[x.project_id] = (x.action)
+            else:
+                generic_contract = x.action
+        actions = []
+        for prj,action in spec_contract_actions.iteritems():
+            vms = [x.id for x in vms_by_tenant.get(prj, {})]
+            for vm in vms:
+                actions.append(ActionData(name=action, source=source,
+                                    request_id=failure_id,
+                                    target_resource=vm['id']))
+            vms_by_tenant.pop(prj, None)
+        # may need refactor, need to process twice
+        if generic_contract:
+            for prj,vms in vms_by_tenant.iteritems():
+                for vm in vms:
+                    actions.append(ActionData(name=generic_contract,
+                                              source=source,
+                                              request_id=failure_id,
+                                              target_resource=vm['id']))
+
+        if actions:
+            handler_manager().start_plugins_group(ctx, actions)
+
     def alert(self, ctx, alarm_id, source):
         alarm = alarm_manager.get_by_alarm_id(ctx, alarm_id)
-        if not alarm:
-            raise exc.NotFoundException('No Alarm found with id %s' % alarm_id)
-
         contract_ids = AlarmTrack.get_contracts_by_alarm_id(alarm_id)
-        if not contract_ids:
-            return
 
-        contracts = [sla_contract.get_by_contract_id(contract_id)
-                     for contract_id in contract_ids]
-        projects = [contract.project_id for contract in contracts]
-        projects.sort(reverse=True)
+        contracts = []
+        for x in contract_ids:
+            try:
+                contracts.append(sla_contract.get_by_contract_id(x))
+            except exc.NotFoundException:
+                pass
+        if not contracts:
+            raise exc.NotFoundException('No contracts or alarms found')
 
-        hosts = alarm.affected_resources(period=3, delta_seconds=120)
-        if not hosts:
-            LOG.error('Not resources associated to the alarm')
-            return
+        if alarm.type == SLA_TYPES['HOST_DOWN']['alarm']:
+            return self._process_host_down_alarm(ctx, alarm, contracts, source)
 
-        failure_id = self._track_failure(timeutils.utcnow(), alarm_id,
-                                         str(hosts))
 
-        vms = []
-        client = utils.get_nova_client(ctx)
-        if not client:
-            raise Exception('Error retrieving nova client')
-
-        for host in hosts:
-            for project in projects:
-                vms.append(utils.get_nova_vms(client, tenant_id=project,
-                                              host=host))
-
-        for vm in vms:
-            action = ActionData('evacuate', source=source,
-                                request_id=failure_id,
-                                target_resource=vm.id,)
-            plugin = handler_manager.get_plugin('evacuate')
-            plugin.start(ctx, action)
-
-    @classmethod
-    def _track_failure(time_utc, alarm_id, data):
+    def _track_failure(self, time_utc, alarm_id, data):
         failure = failure_track()
         failure.time = time_utc
         failure.alarm_id = alarm_id
@@ -187,7 +216,6 @@ class SLAAlarmingEngine():
         return failure.id
 
     @classmethod
-    def track_failure_get_all(self):
-        failure = failure_track()
+    def track_failure_get_all(cls):
         failures = [failure.to_dict() for failure in failure_track.get_all()]
         return failures

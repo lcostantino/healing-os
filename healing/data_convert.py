@@ -28,7 +28,7 @@ class CustomFormatter(FormatterBase):
     SOURCE = 'custom'
 
     def format(self, name, data, target_resource=None, headers=None):
-        #expect target_resource in action_meta
+        #expect source in action_meta
         if data and not target_resource:
             target_resource = data.get('target_resource')
 
@@ -44,8 +44,7 @@ class CustomFormatter(FormatterBase):
 class CeilometerFormatter(CustomFormatter):
     """ We expect ceilmeter to send target_resource if calling
         handlers without SLA component.
-        We could get the resource from ceilometer also based on 
+        We could get the resource from ceilometer also based on
         alarm_id in the future
     """
     SOURCE = 'ceilometer'
-

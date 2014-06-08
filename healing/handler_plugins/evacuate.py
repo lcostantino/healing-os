@@ -27,10 +27,10 @@ class Evacuate(base.HandlerPluginBase):
         try:
             client = utils.get_nova_client(ctx)
             lista = client.servers.get(data.target_resource)
-            data.output = "Server: " + str(lista.name)
+            self.current_action.output = "Server: " + str(lista.name)
         except Exception as e:
             LOG.exception(e)
-            self.current_action.internal_data_obj.error_msg = e.message
+            self.current_action.output = e.message
             self.stop(data, True)
             return None
 
