@@ -52,10 +52,26 @@ class SLAAlarm(resource.Resource):
     previous = wtypes.text
 
 
+class FailureTrack(resource.Resource):
+    """Failure Track resource."""
+
+    id = wtypes.text
+    time = wtypes.text
+    alarm_id = wtypes.text
+    data = wtypes.text
+    tracking_id = wtypes.text
+
+
 class SLAContracts(resource.Resource):
     """SLA contract resource list."""
 
     contracts = [SLAContract]
+
+
+class FailureTracks(resource.Resource):
+    """Failure Track resource list."""
+
+    failures = [FailureTrack]
 
 
 class SLAContractController(rest.RestController):
@@ -124,9 +140,22 @@ class SLAAlarmingController(rest.RestController):
         return self.engine.track_failure_get_all()
 
 
+class SLATrackingController(rest.RestController):
+
+    def __init__(self):
+        self.engine = SLAAlarmingEngine()
+
+    @wsme_pecan.wsexpose(FailureTracks)
+    def get_all(self):
+        failure_dicts = self.engine.track_failure_get_all()
+        failures = [FailureTrack.from_dict(obj) for obj in failure_dicts]
+
+        return FailureTracks(failures=failures)
+
+
 class SLAController(rest.RestController):
 
     contract = SLAContractController()
     alarming = SLAAlarmingController()
-
+    tracking = SLATrackingController()
 
