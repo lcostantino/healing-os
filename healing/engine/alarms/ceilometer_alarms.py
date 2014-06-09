@@ -161,19 +161,19 @@ class CeilometerAlarm(alarm_base.AlarmBase):
                              seconds from current_date==end_date
         :param meter Meter name or current alarm meter name. The param is here
                      to do combination queries in future alarms
-                     
+
         :param result_process if it's a function invoke it on results
-        
+
         The result is returned as it's. Must implement a generic converter.
-        
+
         """
-          
+
         try:
             client = self._get_client()
             meter = meter or self.meter
             if not start_date:
                 delta_seconds = delta_seconds or (self.period * self.evaluation_period) 
-            
+
             res = utils.get_ceilometer_statistics(client, meter=meter, period=period, 
                                                   query=query,
                                                   start_date=start_date, end_date=end_date,
@@ -183,7 +183,7 @@ class CeilometerAlarm(alarm_base.AlarmBase):
             if result_process:
                 return result_process()(self, res)
             return res
-                                   
+
         except Exception as e:
             LOG.exception(e)
             raise # cannotgetresourceseceptin
@@ -315,6 +315,8 @@ class ResourceAlarm(CeilometerAlarm):
         # Check if already in DB if it's the first one, create it.?
         search by type
         """
+        print "OPTIONS:", self.options
+        print "==================\n"
         try:
             external_created = False
             if (not self.options.get('project_id') and
