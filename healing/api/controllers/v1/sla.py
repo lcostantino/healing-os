@@ -60,7 +60,6 @@ class FailureTrack(resource.Resource):
     time = wtypes.datetime.datetime
     alarm_id = wtypes.text
     data = wtypes.text
-    tracking_id = wtypes.text
 
 
 class SLAContracts(resource.Resource):
