@@ -157,6 +157,7 @@ class SLAAlarmingEngine():
                         % alarm.alarm_id)
             return ""
 
+        actions = []
         for x in resources:
             actions.append(ActionData(name=contract.action,
                                       source=source,
@@ -204,20 +205,20 @@ class SLAAlarmingEngine():
         generic_contract = False
         for x in contracts:
             if x.project_id is not None:
-                spec_contract_actions[x.project_id] = (x.action)
+                spec_contract_actions[x.project_id] = x.action
             else:
                 generic_contract = x.action
         actions = []
-        for prj,action in spec_contract_actions.iteritems():
+        for prj, action in spec_contract_actions.iteritems():
             vms = [x.id for x in vms_by_tenant.get(prj, {})]
             for vm in vms:
                 actions.append(ActionData(name=action, source=source,
-                                    request_id=failure_id,
-                                    target_resource=vm['id']))
+                                          request_id=failure_id,
+                                          target_resource=vm['id']))
             vms_by_tenant.pop(prj, None)
         # may need refactor, need to process twice
         if generic_contract:
-            for prj,vms in vms_by_tenant.iteritems():
+            for prj, vms in vms_by_tenant.iteritems():
                 for vm in vms:
                     actions.append(ActionData(name=generic_contract,
                                               source=source,
