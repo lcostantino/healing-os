@@ -52,6 +52,10 @@ def validate_contract_info(contract_dict, update=False):
     except Exception as e:
         LOG.exception(e)
         raise exc.InvalidDataException('Action not valid or available')
+    if not update and ctype == SLA_TYPES['RESOURCE']['alarm']:
+        if not ctype.get('project_id') and not ctype.get('resoure_id'):
+            raise exc.InvalidActionException('Project ID or Resource ID '
+                                             'required for Resource Alarm')
 
 class SLAContractEngine():
     HOST_DOWN_ALARM_TYPE = cel_alarms.HostDownUniqueAlarm.ALARM_TYPE
@@ -133,6 +137,8 @@ class SLAContractEngine():
                                     remote_alarm_id=None,
                                     contract_id=contract_obj.id,
                                     alarm_object=None,
+                                    resource_id=contract_obj.resource_id,
+                                    project_id=contract_obj.project_id,
                                     **additional_info)
         alarm.create()
 
