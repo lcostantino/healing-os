@@ -34,7 +34,7 @@ SLA_TYPES = {'HOST_DOWN': {'alarm': cel_alarms.HostDownUniqueAlarm.ALARM_TYPE,
                            'options': {'meter': 'services.compute_host.down',
                                        'operator': 'eq',
                                        'threshold': 1,
-                                       'repeatable': True},
+                                       'repeat': True},
                            'override': False},
              'RESOURCE': {'alarm': cel_alarms.ResourceAlarm.ALARM_TYPE,
                           'override': True,
@@ -139,6 +139,7 @@ class SLAContractEngine():
                                     alarm_object=None,
                                     resource_id=contract_obj.resource_id,
                                     project_id=contract_obj.project_id,
+
                                     **additional_info)
         alarm.create()
 
@@ -177,12 +178,13 @@ class SLAAlarmingEngine():
     def _process_host_down_alarm(self, ctx, alarm, contracts, source):
 
         time_frame = (alarm.period * alarm.evaluation_period) #* 2
-        # we use the cache to avoid hosts processed in the last time
+        # we use the_process_host_down_alarm cache to avoid hosts processed in the last time
         # can be dne with filter periods, but we may loose
         # hosts that we failed to process for other reaons
         resources = alarm.affected_resources(period=alarm.period,
                             delta_seconds=time_frame,
                             result_process=filters.FormatResources)
+
         if resources:
             resources = [x for x in resources if
                          not utils.get_cache_value(x)]
@@ -206,6 +208,7 @@ class SLAAlarmingEngine():
             except Exception as e:
                 LOG.exception(e)
                 continue
+
         # specific contracts
         spec_contract_actions = {}
         generic_contract = False
@@ -215,6 +218,7 @@ class SLAAlarmingEngine():
             else:
                 generic_contract = x.action
         actions = []
+
         for prj, action in spec_contract_actions.iteritems():
             vms = [x.id for x in vms_by_tenant.get(prj, {})]
             for vm in vms:
@@ -224,6 +228,7 @@ class SLAAlarmingEngine():
             vms_by_tenant.pop(prj, None)
         # may need refactor, need to process twice
         if generic_contract:
+
             for prj, vms in vms_by_tenant.iteritems():
                 for vm in vms:
                     actions.append(ActionData(name=generic_contract,
@@ -237,6 +242,7 @@ class SLAAlarmingEngine():
             handler_manager().start_plugins_group(ctx, actions)
 
     def alert(self, ctx, alarm_id, source):
+
         alarm = alarm_manager.get_by_alarm_id(ctx, alarm_id)
         contract_ids = AlarmTrack.get_contracts_by_alarm_id(alarm_id)
 

@@ -57,7 +57,7 @@ class FailureTrack(resource.Resource):
     """Failure Track resource."""
 
     id = wtypes.text
-    time = wtypes.text
+    time = wtypes.datetime.datetime
     alarm_id = wtypes.text
     data = wtypes.text
     tracking_id = wtypes.text
@@ -130,6 +130,7 @@ class SLAAlarmingController(rest.RestController):
         body = six.moves.urllib_parse.unquote_plus(pecan.request.body)
         if body and body[-1] == '=':
             body = body[:-1]
+
         #validate body
         ctx = utils.get_context_req(pecan.request)
         if not status or not source:

@@ -315,8 +315,7 @@ class ResourceAlarm(CeilometerAlarm):
         # Check if already in DB if it's the first one, create it.?
         search by type
         """
-        print "OPTIONS:", self.options
-        print "==================\n"
+
         try:
             external_created = False
             if (not self.options.get('project_id') and
