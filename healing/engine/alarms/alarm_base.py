@@ -70,6 +70,8 @@ class AlarmBase(object):
         self.ctx = ctx
         # additional data base on subclass
         self.options = kwargs or {}
+        #this is filled in some specific cases on create/update
+        self.extra_alarm_data = {}
         if alarm_object:
             self.alarm_track = alarm_object
             return
@@ -199,7 +201,9 @@ class AlarmBase(object):
     def is_active(self):
         return True
 
-    # TODO: change name
+    def get_extra_alarm_data(self):
+        return self.extra_alarm_data
+
     def affected_resources(self, group_by='resource_id',
                            period=0, query=None,
                            start_date=None, end_date=None,
@@ -224,4 +228,7 @@ class AlarmBase(object):
         pass
 
     def set_insufficient_hook_url(self, url):
+        pass
+
+    def get_hooks(self):
         pass

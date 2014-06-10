@@ -68,14 +68,13 @@ class SLAContract(base.HealingPersistentObject, base.HealingObject):
         updates.pop('id', None)
 
         db_sla_contract = db_api.sla_contract_create(updates)
-        return self._from_db_object( self, db_sla_contract)
+        return self._from_db_object(self, db_sla_contract)
 
     def save(self):
         updates = self.obj_get_changes()
         updates.pop('id', None)
-
         db_sla_contract = db_api.sla_contract_update(self.id, updates)
-        return self._from_db_object( self, db_sla_contract)
+        return self._from_db_object(self, db_sla_contract)
 
     @classmethod
     def delete(cls, id):

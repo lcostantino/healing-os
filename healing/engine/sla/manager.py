@@ -20,6 +20,7 @@ from healing.openstack.common import timeutils
 from healing import exceptions as exc
 from healing.engine.alarms import filters
 from healing.engine.alarms import manager as alarm_manager
+from healing.engine.alarms import generic_alarms
 from healing.engine.alarms import ceilometer_alarms as cel_alarms
 from healing.objects.sla_contract import SLAContract as sla_contract
 from healing.objects.failure_track import FailureTrack as failure_track
@@ -38,7 +39,15 @@ SLA_TYPES = {'HOST_DOWN': {'alarm': cel_alarms.HostDownUniqueAlarm.ALARM_TYPE,
                            'override': False},
              'RESOURCE': {'alarm': cel_alarms.ResourceAlarm.ALARM_TYPE,
                           'override': True,
-                          'options': None}
+                          'options': None},
+             'CEILOMETER_EXTERNAL_RESOURCE': {
+                          'alarm': cel_alarms.ExternalResourceAlarm.ALARM_TYPE,
+                          'override': True,
+                          'options': None},
+             'GENERIC_SCRIPT_ALARM': {
+                        'alarm': generic_alarms.ExternalScriptAlarm.ALARM_TYPE,
+                        'override': True,
+                        'options': None}
             }
 
 def validate_contract_info(contract_dict, update=False):
@@ -62,24 +71,48 @@ class SLAContractEngine():
     HOST_DOWN_ALARM_METER = 'services.compute_host.down'
     HOST_DOWN_ALARM_OP = 'eq'
 
+    def _post_alarm_data(self, ctx, alarm, contract):
+        """
+        Some alarms retrieve information to fulfill the contract
+        data. Ex: alarms created from external sources, we need to
+        get the resource_id. This bring a new issue of outdated alarms but
+        kept the app much more generic.
+        """
+        if alarm.ALARM_TYPE == SLA_TYPES['CEILOMETER_EXTERNAL_RESOURCE']['alarm']:
+            extra = alarm.get_extra_alarm_data()
+            contract.project_id = extra.get('project_id', contract.project_id)
+            contract.resource_id = extra.get('resource_id',
+                                             contract.resource_id)
+            contract.save()
+
+
     def create(self, ctx, contract_dict):
         validate_contract_info(contract_dict)
         # WARN: IF PROJECT_ID NULL AND RESOURCE_ID NULL DO NOt ALLOw
         # TO CONTRACTS FOR 'ALL' on the same ALARM tyPE
+        # TODO: VALIDATE project_id or resource_id if alarm_type is not HOST_DOWN!
         contract_created = sla_contract.from_dict(contract_dict).create()
         try:
-            self._create_alarm(ctx, contract_created,
-                               contract_dict.get('alarm_data'))
+            alarm = self._create_alarm(ctx, contract_created,
+                                       contract_dict.get('alarm_data'))
+            self._post_alarm_data(ctx, alarm, contract_created)
         except Exception:
             contract_created.delete(contract_created.id)
+            # WARN: if the alarm is created, need to delete IT!
             raise
         return contract_created.to_dict()
 
     def update(self, ctx, contract_dict):
         validate_contract_info(contract_dict, update=True)
-        contract_saved = sla_contract.from_dict(contract_dict).save()
-        self._update_alarm(ctx, contract_saved, contract_dict.get('alarm_data'))
-        return contract_saved.to_dict()
+        try:
+            contract_saved = sla_contract.from_dict(contract_dict).save()
+            alarm = self._update_alarm(ctx, contract_saved,
+                                       contract_dict.get('alarm_data'))
+            self._post_alarm_data(ctx, alarm, contract_created)
+            return contract_saved.to_dict()
+        except Exception:
+            raise
+
 
     def delete(self, ctx, contract_id):
         self._delete_alarm(ctx, contract_id)
@@ -127,6 +160,7 @@ class SLAContractEngine():
         if alarm and additional_info:
             alarm.set_from_dict(additional_info)
             alarm.update()
+        return alarm
 
     def _create_alarm(self, ctx, contract_obj, alarm_data):
         (al_type, additional_info) = self._parse_alarm_opts(ctx,
@@ -139,19 +173,18 @@ class SLAContractEngine():
                                     alarm_object=None,
                                     resource_id=contract_obj.resource_id,
                                     project_id=contract_obj.project_id,
-
                                     **additional_info)
         alarm.create()
-
+        return alarm
 
 class SLAAlarmingEngine():
     def _process_resource_alarm(self, ctx, alarm, contract, source):
         """ Untested."""
-        resource = [contract.resource_id]
+        contract = contract[0]
+        resources = [contract.resource_id]
         project = contract.project_id
-        if not resource:
+        if not resources:
             resources = [project]
-
         failure_id = self._track_failure(timeutils.utcnow(), alarm.alarm_id,
                                          str(resources))
         if not contract.resource_id:
@@ -160,7 +193,7 @@ class SLAAlarmingEngine():
                                     delta_seconds=time_frame,
                                     result_process=filters.FormatResources)
         if not resources:
-            LOG.warning('No resource found on ResourceAlarm %s'
+            LOG.warning('No resources found on ResourceAlarm %s'
                         % alarm.alarm_id)
             return ""
 
@@ -241,10 +274,13 @@ class SLAAlarmingEngine():
         if actions:
             handler_manager().start_plugins_group(ctx, actions)
 
-    def alert(self, ctx, alarm_id, source):
-
-        alarm = alarm_manager.get_by_alarm_id(ctx, alarm_id)
-        contract_ids = AlarmTrack.get_contracts_by_alarm_id(alarm_id)
+    def alert(self, ctx, alarm_id, source, contract_id=None):
+        if contract_id:
+            alarm = alarm_manager.get_by_contract_id(ctx, contract_id)
+            contract_ids = [contract_id]
+        else:
+            alarm = alarm_manager.get_by_alarm_id(ctx, alarm_id)
+            contract_ids = AlarmTrack.get_contracts_by_alarm_id(alarm_id)
 
         contracts = []
         for x in contract_ids:

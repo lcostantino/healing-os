@@ -4,7 +4,6 @@ from healing import config
 from healing import exceptions
 from healing import utils
 from healing.engine.alarms import alarm_base
-from healing.openstack.common import timeutils
 from healing.openstack.common import log as logging
 from healing.openstack.common import excutils
 from healing.objects import alarm_track as alarm_obj
@@ -12,6 +11,7 @@ from healing.objects import alarm_track as alarm_obj
 from ceilometerclient import exc as cl_exception
 
 LOG = logging.getLogger(__name__)
+
 
 class CeilometerAlarm(alarm_base.AlarmBase):
     """
@@ -27,7 +27,6 @@ class CeilometerAlarm(alarm_base.AlarmBase):
     """
     client = None
     ALARM_TYPE = 'ceilometer_alarm'
-
 
     def __init__(self, **kwargs):
         self.hooks = {}
@@ -137,7 +136,7 @@ class CeilometerAlarm(alarm_base.AlarmBase):
                            aggregates=None, delta_seconds=None,
                            meter=None,
                            result_process=None):
-                          
+
         """
         Fetch statics based on period and same threshold.
         this is usefull mostly for singleton alarms or
@@ -308,7 +307,7 @@ class ResourceAlarm(CeilometerAlarm):
     If you need more queries, just call add_custom_query or prepare
     the queries on constructor
     """
-    ALARM_TYPE = 'resource_generic_alarm'
+    ALARM_TYPE = 'ceilometer_resource_alarm'
 
     def create(self):
         """
@@ -362,6 +361,108 @@ class ResourceAlarm(CeilometerAlarm):
             if self.alarm_track and self.alarm_track_id:
                 self.alarm_track.delete()
             super(ResourceAlarm, self).delete()
+        except Exception as e:
+            LOG.exception(e)
+            raise exceptions.AlarmCreateOrUpdateException()
+
+
+class ExternalResourceAlarm(CeilometerAlarm):
+
+    """
+    Build the record from an already existing Ceilometer Alarm.
+    We need the user to call update on alarm change or we can
+    update ourselves on affected_resources call but need to do
+    1 more rest query on each call..
+
+    We only handle alarms that have resource_id as filter
+    """
+    ALARM_TYPE = 'ceilometer_external_resource'
+
+    def __init__(self, **kwargs):
+        super(ExternalResourceAlarm, self).__init__(**kwargs)
+        self.alarm_id = self.options.get('alarm_id', self.alarm_id)
+
+    def _clone_alarm_data(self):
+        # We only handle alarms with resource_id and
+        # project id. Even that will work for tenant alarms without
+        # resource, this may get outdated on affect_resources queries
+        if not self.alarm_id:
+            raise exceptions.InvalidDataException('Missing alarm_id')
+        client = self._get_client()
+        try:
+            alarm = client.alarms.get(self.alarm_id)
+        except:
+            raise exceptions.NotFoundException('External alarm not found')
+        self.period = alarm.rule.get('period')
+        self.evaluation_period = alarm.rule.get('evaluation_period')
+        self.threshold = alarm.rule.get('threshold')
+        self.operator = alarm.rule.get('comparison_operator')
+        self.statistic = alarm.rule.get('statistic')
+        self.meter = alarm.rule.get('meter_name')
+        self.query = alarm.rule.get('query') or []
+        self.extra_alarm_data['project_id'] = alarm.project_id
+        for x in self.query:
+            if x.get('field') == 'resource_id':
+                self.extra_alarm_data['resource_id'] = x.get('value')
+                return
+        raise exceptions.InvalidDataException('Missing resource_id in query')
+
+    def create(self):
+        try:
+            self._clone_alarm_data()
+            self.alarm_track.create()
+        except exceptions.HealingException as e:
+            LOG.exception(e)
+            raise
+        except Exception as e:
+            LOG.exception(e)
+            raise exceptions.AlarmCreateOrUpdateException()
+
+    def update(self):
+        try:
+            self._clone_alarm_data()
+            self.alarm_track.update()
+        except exceptions.HealingException as e:
+            LOG.exception(e)
+            raise
+        except Exception as e:
+            LOG.exception(e)
+            raise exceptions.AlarmCreateOrUpdateException()
+
+    def delete(self):
+        try:
+            self.alarm_track.delete()
+        except Exception as e:
+            LOG.exception(e)
+            raise exceptions.AlarmCreateOrUpdateException()
+
+
+class ExternalScriptAlarm(alarm_base.AlarmBase):
+
+    """
+    Dummy alarm that just register the AlarmTrack and expect
+    an script or an external monitor system to call it.
+    """
+    ALARM_TYPE = 'external_script_alarm'
+    hooks = {}
+
+    def __init__(self, **kwargs):
+        self.unique_alarm_obj = None
+        super(ExternalScriptAlarm, self).__init__(**kwargs)
+
+    def create(self):
+        try:
+            self.alarm_track.create()
+        except Exception as e:
+            LOG.exception(e)
+            raise exceptions.AlarmCreateOrUpdateException()
+
+    def update(self):
+        pass
+
+    def delete(self):
+        try:
+            self.alarm_track.delete()
         except Exception as e:
             LOG.exception(e)
             raise exceptions.AlarmCreateOrUpdateException()

@@ -192,7 +192,7 @@ def sla_contract_update(sla_contract_id, values):
             raise exc.NotFoundException('SLA contract not found')
 
         sla_contract.update(values.copy())
-
+        sla_contract.save(session=session)
         return sla_contract
 
 

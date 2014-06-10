@@ -3,6 +3,7 @@
 from healing.engine.alarms import alarm_base as ab
 #DON't remove unused class
 from healing.engine.alarms import ceilometer_alarms
+from healing.engine.alarms import generic_alarms
 from healing.openstack.common import log
 from healing.objects import alarm_track as alarm_obj
 
