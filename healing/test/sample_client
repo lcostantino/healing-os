@@ -1,0 +1,4 @@
+sla-contract-create RESOURCE 1 evacuate -resource_id fa730e84-3c31-4902-8731-6ffe8a37026b -tenant_id c8d29398c19846b2b7b7175a8acf73c9  -alarm_data '{"period": 20, "threshold": "100", "operator": "gt", "meter": "disk.read.bytes"}'
+
+(healing)  sla-contract-create EXTERNAL_RESOURCE 1 evacuate -alarm_data '{"alarm_id":"5f905ad6-c67a-4c6e-92bd-3fd179b5de42"}'
+
