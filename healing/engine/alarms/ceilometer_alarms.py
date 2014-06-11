@@ -238,6 +238,8 @@ class HostDownUniqueAlarm(CeilometerAlarm):
         try:
 
             external_created = False
+            self.options.pop('project_id')
+            
             # TODO: if duplicated, raise or we expect the caller
             # to handle that?
             first_alarm = self._is_first_alarm()
@@ -247,6 +249,7 @@ class HostDownUniqueAlarm(CeilometerAlarm):
             # other way would be to use random, or use
             # some id . but they can be created outside
             # we may use contract id only if it 1<->1
+
             if first_alarm:
                 LOG.debug("Creating unique external alarm")
                 if not self.hooks.get(alarm_base.ALARM_HOOK):
