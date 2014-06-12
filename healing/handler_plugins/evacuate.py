@@ -13,12 +13,13 @@ class Evacuate(base.HandlerPluginBase):
     Data format in action_meta is:
         'evacuate_host': True  if evacuating the entire host
     """
-    DESCRIPTION = "evacuate"
+    DESCRIPTION = "Evacuate VM (shared storage)"
     NAME = "evacuate"
 
     def start(self, ctx, data):
         """ do something...  spawn thread?
             :param data ActionData Object
+            shared_storage?
         """
         if not self.can_execute(data):
             raise exceptions.ActionInProgress()
@@ -26,8 +27,10 @@ class Evacuate(base.HandlerPluginBase):
         self.register_action(data)
         try:
             client = utils.get_nova_client(ctx)
-            lista = client.servers.get(data.target_resource)
-            self.current_action.output = "Server: " + str(lista.name)
+            lista = client.servers.evacuate(data.target_resource, 
+                                            on_shared_storage=True,
+                                            find_host=True)
+            self.current_action.output = "Output: " + str(lista)
         except Exception as e:
             LOG.exception(e)
             self.current_action.output = e.message
