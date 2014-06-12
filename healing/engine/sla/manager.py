@@ -222,8 +222,9 @@ class SLAAlarmingEngine():
                             result_process=filters.FormatResources)
 
         if resources:
+            #penalize if already in cache
             resources = [x for x in resources if
-                         not utils.get_cache_value(x)]
+                         not utils.get_cache_value(x, penalize=True)]
             LOG.debug('Resources after cache check %s' % str(resources))
 
         if not resources:

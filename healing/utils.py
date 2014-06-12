@@ -224,10 +224,15 @@ def set_cache_value(resource, resource_type='host', value=1,
     get_cache_client().set(key, value, time)
 
 
-def get_cache_value(resource, resource_type='host'):
+def get_cache_value(resource, resource_type='host', penalize=False, 
+                   time=_CACHE_TIME):
     key = '%s_%s' % (resource, resource_type)
-    return get_cache_client().get(key)
-
+    client = get_cache_client()
+    value = client.get(key)
+    if value and penalize:
+        client.set(key, value, time)
+        LOG.warning("Penalize resource %s", key)
+    return value
 
 def reset_cache():
     global _CACHE
