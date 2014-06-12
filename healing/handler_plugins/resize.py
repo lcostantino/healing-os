@@ -10,7 +10,7 @@ LOG = logging.getLogger(__name__)
 class Resize(base.HandlerPluginBase):
     """Resize VM
     """
-    DESCRIPTION = "resize"
+    DESCRIPTION = "Resize to a bigger flavor"
     NAME = "resize"
 
     def start(self, ctx, data):
@@ -22,9 +22,12 @@ class Resize(base.HandlerPluginBase):
 
         self.register_action(data)
         try:
+	    config = data.action_data.get('data', {})
+	    flavor = config.get('flavor', 'm1.large')
+
             client = utils.get_nova_client(ctx)
-            lista = client.servers.get(data.target_resource)
-            self.current_action.output = "Server: " + str(lista.name)
+            output = client.servers.resize(data.target_resource, flavor=flavor)
+            self.current_action.output = output
         except Exception as e:
             LOG.exception(e)
             self.current_action.output = e.message

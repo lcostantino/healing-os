@@ -26,10 +26,13 @@ class Evacuate(base.HandlerPluginBase):
 
         self.register_action(data)
         try:
+            config = data.action_data.get('data') or {}
             client = utils.get_nova_client(ctx)
-            lista = client.servers.evacuate(server=data.target_resource, 
-                                            host=None, on_shared_storage=True)
-            self.current_action.output = "Output: " + str(lista)
+            host = config.get('dest_host', None)
+            shared = config.get('shared_storage', True)
+            output = client.servers.evacuate(server=data.target_resource,
+                                            host=host, on_shared_storage=shared)
+            self.current_action.output = output
         except Exception as e:
             LOG.exception(e)
             self.current_action.output = e.message
