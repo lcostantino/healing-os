@@ -27,9 +27,8 @@ class Evacuate(base.HandlerPluginBase):
         self.register_action(data)
         try:
             client = utils.get_nova_client(ctx)
-            lista = client.servers.evacuate(data.target_resource, 
-                                            on_shared_storage=True,
-                                            find_host=True)
+            lista = client.servers.evacuate(server=data.target_resource, 
+                                            host=None, on_shared_storage=True)
             self.current_action.output = "Output: " + str(lista)
         except Exception as e:
             LOG.exception(e)
