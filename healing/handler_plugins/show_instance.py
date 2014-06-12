@@ -7,7 +7,7 @@ from healing import utils
 
 LOG = logging.getLogger(__name__)
 
-class ShowInstance(base.HandlerPluginBase):
+class InstanceShow(base.HandlerPluginBase):
     """Output a nova show
     """
     DESCRIPTION = "Just output nova show for instance"
@@ -48,4 +48,4 @@ class ShowInstance(base.HandlerPluginBase):
 
 
     def can_execute(self, data, ctx=None):
-        return super(ShowInstance, self).can_execute(data, ctx=ctx)
+        return super(InstanceShow, self).can_execute(data, ctx=ctx)
