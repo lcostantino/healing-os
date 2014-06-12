@@ -78,6 +78,9 @@ class SLAContractEngine():
         get the resource_id. This bring a new issue of outdated alarms but
         kept the app much more generic.
         """
+        if contract.resource_id:
+           return
+       
         if alarm.ALARM_TYPE == SLA_TYPES['CEILOMETER_EXTERNAL_RESOURCE']['alarm']:
             extra = alarm.get_extra_alarm_data()
             contract.project_id = extra.get('project_id', contract.project_id)

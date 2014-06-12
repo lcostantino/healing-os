@@ -408,7 +408,8 @@ class ExternalResourceAlarm(CeilometerAlarm):
             if x.get('field') == 'resource_id':
                 self.extra_alarm_data['resource_id'] = x.get('value')
                 return
-        raise exceptions.InvalidDataException('Missing resource_id in query')
+        LOG.warning('missing resource_id in query, should be provided in contract')
+        
 
     def create(self):
         try:
