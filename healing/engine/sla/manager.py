@@ -145,7 +145,7 @@ class SLAContractEngine():
             except Exception as e:
                 LOG.error(e)
                 pass
-        if not additional_info and not update:
+        if  not update:
             # to avoid writing the same values
             if not al_type.get('override', False):
                 additional_info.update(al_type.get('options'))
@@ -256,7 +256,7 @@ class SLAAlarmingEngine():
         actions = []
 
         for prj, action in spec_contract_actions.iteritems():
-            vms = [x.id for x in vms_by_tenant.get(prj, {})]
+            vms = [x for x in vms_by_tenant.get(prj, [])]
             for vm in vms:
                 actions.append(ActionData(name=action, source=source,
                                           request_id=failure_id,
