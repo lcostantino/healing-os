@@ -7,11 +7,11 @@ from healing import utils
 
 LOG = logging.getLogger(__name__)
 
-class Resize(base.HandlerPluginBase):
-    """Resize VM
+class Suspend(base.HandlerPluginBase):
+    """Suspend VM
     """
-    DESCRIPTION = "Resize to a bigger flavor"
-    NAME = "resize"
+    DESCRIPTION = "Suspend VM"
+    NAME = "suspend"
 
     def start(self, ctx, data):
         """ do something...  spawn thread?
@@ -22,10 +22,8 @@ class Resize(base.HandlerPluginBase):
 
         self.register_action(data)
         try:
-	    config = data.action_meta.get('data') or {}
-	    flavor = config.get('flavor_id', '42')
             client = utils.get_nova_client(ctx)
-            output = client.servers.resize(data.target_resource, flavor=flavor)
+            output = client.servers.suspend(data.target_resource)
             self.current_action.output = str(output)
         except Exception as e:
             LOG.exception(e)
@@ -54,4 +52,4 @@ class Resize(base.HandlerPluginBase):
         :param data ActionData Obj
         move to parent?
         """
-        return super(Resize, self).can_execute(data, ctx=ctx)
+        return super(Suspend, self).can_execute(data, ctx=ctx)
