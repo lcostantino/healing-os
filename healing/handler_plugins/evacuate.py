@@ -32,7 +32,7 @@ class Evacuate(base.HandlerPluginBase):
             shared = config.get('shared_storage', True)
             output = client.servers.evacuate(server=data.target_resource,
                                             host=host, on_shared_storage=shared)
-            self.current_action.output = output
+            self.current_action.output = str(output)
         except Exception as e:
             LOG.exception(e)
             self.current_action.output = e.message

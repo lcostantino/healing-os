@@ -27,7 +27,7 @@ class Resize(base.HandlerPluginBase):
 
             client = utils.get_nova_client(ctx)
             output = client.servers.resize(data.target_resource, flavor=flavor)
-            self.current_action.output = output
+            self.current_action.output = str(output)
         except Exception as e:
             LOG.exception(e)
             self.current_action.output = e.message

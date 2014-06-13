@@ -24,7 +24,7 @@ class InstanceShow(base.HandlerPluginBase):
         try:
             client = utils.get_nova_client(ctx)
             lista = client.servers.get(data.target_resource)
-            self.current_action.output = "Server: " + str(lista.name)
+            self.current_action.output = "Server: " + str(lista)
         except Exception as e:
             LOG.exception(e)
             self.current_action.output = e.message
