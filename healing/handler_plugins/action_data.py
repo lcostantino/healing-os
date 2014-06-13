@@ -8,7 +8,7 @@ class ActionData(object):
         :name Plugin Name
         :target_resource The resource to operate on
         :source The data source. Set by converters
-        :action_meta Data for the plugin if required.
+        :data Data for the plugin if required.
         :internal_data Used by the plugin to track internal things.
         :request_id an Id to associate a group of actins.
         :output The output of the operation.

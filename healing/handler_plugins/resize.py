@@ -1,6 +1,7 @@
 from healing.handler_plugins import base
 
 from healing import exceptions
+from healing.openstack.common import jsonutils
 from healing.openstack.common import log as logging
 from healing import utils
 
@@ -22,8 +23,8 @@ class Resize(base.HandlerPluginBase):
 
         self.register_action(data)
         try:
-	    config = data.action_meta.get('data') or {}
-	    flavor = config.get('flavor_id', '42')
+            options = jsonutils.loads(data.action_meta.get('data') or {})
+            flavor = options.get('flavor_id', '42')
             client = utils.get_nova_client(ctx)
             output = client.servers.resize(data.target_resource, flavor=flavor)
             self.current_action.output = str(output)

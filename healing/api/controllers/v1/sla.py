@@ -42,6 +42,7 @@ class SLAContract(resource.Resource):
     action = wtypes.text
     resource_id = wtypes.text
     alarm_data = wtypes.text
+    action_options = wtypes.text
 
 
 class SLAAlarm(resource.Resource):

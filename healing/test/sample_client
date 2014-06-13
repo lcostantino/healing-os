@@ -6,3 +6,6 @@ sla-contract-create RESOURCE 1 evacuate -resource_id fa730e84-3c31-4902-8731-6ff
 
 
 
+# sla-contract-create -action_options '{"workflow":"SendMail", "task": "sendResultEmail", "params": {"admin_email": "root@ubuntu-SVT13125CLS", "smtp_server": "localhost", "output": "salida"}}' HOST_DOWN 1 evacuate
+
+

@@ -68,7 +68,9 @@ class SLAContract(mb.HealingBase):
     value = sa.Column(sa.String(255), nullable=True)
     action = sa.Column(sa.String(255), nullable=True)
     resource_id = sa.Column(sa.String(255), nullable=True)
-
+    action_options = sa.Column(sa.String(255), nullable=True)
+    
+    
 class AlarmTrack(mb.HealingBase):
     """Contains info about the ALARMs."""
 

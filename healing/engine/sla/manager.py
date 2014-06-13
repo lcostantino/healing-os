@@ -50,6 +50,7 @@ SLA_TYPES = {'HOST_DOWN': {'alarm': cel_alarms.HostDownUniqueAlarm.ALARM_TYPE,
                         'options': None}
             }
 
+
 def validate_contract_info(contract_dict, update=False):
     ctype = contract_dict.get('type')
     if not update or ctype:
@@ -66,6 +67,7 @@ def validate_contract_info(contract_dict, update=False):
             raise exc.InvalidActionException('Project ID or Resource ID '
                                              'required for Resource Alarm')
 
+
 class SLAContractEngine():
     HOST_DOWN_ALARM_TYPE = cel_alarms.HostDownUniqueAlarm.ALARM_TYPE
     HOST_DOWN_ALARM_METER = 'services.compute_host.down'
@@ -79,8 +81,8 @@ class SLAContractEngine():
         kept the app much more generic.
         """
         if contract.resource_id:
-           return
-       
+            return
+
         if alarm.ALARM_TYPE == SLA_TYPES['CEILOMETER_EXTERNAL_RESOURCE']['alarm']:
             extra = alarm.get_extra_alarm_data()
             contract.project_id = extra.get('project_id', contract.project_id)
@@ -93,7 +95,8 @@ class SLAContractEngine():
         validate_contract_info(contract_dict)
         # WARN: IF PROJECT_ID NULL AND RESOURCE_ID NULL DO NOt ALLOw
         # TO CONTRACTS FOR 'ALL' on the same ALARM tyPE
-        # TODO: VALIDATE project_id or resource_id if alarm_type is not HOST_DOWN!
+        # TODO: VALIDATE project_id or resource_id if alarm_type
+        # is not HOST_DOWN!
         contract_created = sla_contract.from_dict(contract_dict).create()
         try:
             alarm = self._create_alarm(ctx, contract_created,
@@ -108,14 +111,15 @@ class SLAContractEngine():
     def update(self, ctx, contract_dict):
         validate_contract_info(contract_dict, update=True)
         try:
+            # todo: check, this may set blank fields if not provided
+            contract_dict.pop('action', None)
             contract_saved = sla_contract.from_dict(contract_dict).save()
             alarm = self._update_alarm(ctx, contract_saved,
                                        contract_dict.get('alarm_data'))
-            self._post_alarm_data(ctx, alarm, contract_created)
+            self._post_alarm_data(ctx, alarm, contract_saved)
             return contract_saved.to_dict()
         except Exception:
             raise
-
 
     def delete(self, ctx, contract_id):
         self._delete_alarm(ctx, contract_id)
@@ -145,7 +149,7 @@ class SLAContractEngine():
             except Exception as e:
                 LOG.error(e)
                 pass
-        if  not update:
+        if not update:
             # to avoid writing the same values
             if not al_type.get('override', False):
                 additional_info.update(al_type.get('options'))
@@ -180,6 +184,7 @@ class SLAContractEngine():
         alarm.create()
         return alarm
 
+
 class SLAAlarmingEngine():
     def _process_resource_alarm(self, ctx, alarm, contract, source):
         """ Untested."""
@@ -203,6 +208,7 @@ class SLAAlarmingEngine():
         actions = []
         for x in resources:
             actions.append(ActionData(name=contract.action,
+                                      data=contract.action_options,
                                       source=source,
                                       request_id=failure_id,
                                       target_resource=x))
@@ -226,7 +232,7 @@ class SLAAlarmingEngine():
             resources = [x for x in resources if
                          not utils.get_cache_value(x, penalize=True)]
             LOG.debug('Resources after cache check %s' % str(resources))
-
+        resources = ['ubuntu-SVT13125CLS']
         if not resources:
             LOG.warning('no affected resources associated to the alarm '
                         'in time frame seconds: %s' % time_frame)
@@ -247,19 +253,23 @@ class SLAAlarmingEngine():
                 continue
 
         # specific contracts
+        # TODO: ActionData should be sent tr rpc and workers splitted
+
         spec_contract_actions = {}
         generic_contract = False
         for x in contracts:
             if x.project_id is not None:
-                spec_contract_actions[x.project_id] = x.action
+                spec_contract_actions[x.project_id] = (x.action,
+                                                       x.action_options)
             else:
-                generic_contract = x.action
+                generic_contract = (x.action, x.action_options)
         actions = []
 
         for prj, action in spec_contract_actions.iteritems():
             vms = [x for x in vms_by_tenant.get(prj, [])]
             for vm in vms:
-                actions.append(ActionData(name=action, source=source,
+                actions.append(ActionData(name=action[0], source=source,
+                                          data=action[1],
                                           request_id=failure_id,
                                           target_resource=vm['id']))
             vms_by_tenant.pop(prj, None)
@@ -268,7 +278,8 @@ class SLAAlarmingEngine():
 
             for prj, vms in vms_by_tenant.iteritems():
                 for vm in vms:
-                    actions.append(ActionData(name=generic_contract,
+                    actions.append(ActionData(name=generic_contract[0],
+                                              data=generic_contract[1],
                                               source=source,
                                               request_id=failure_id,
                                               target_resource=vm['id']))

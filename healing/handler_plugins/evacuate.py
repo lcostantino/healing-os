@@ -2,6 +2,7 @@ from healing.handler_plugins import base
 
 from healing import exceptions
 from healing.openstack.common import log as logging
+from healing.openstack.common import jsonutils
 from healing import utils
 
 
@@ -26,7 +27,7 @@ class Evacuate(base.HandlerPluginBase):
 
         self.register_action(data)
         try:
-            config = data.action_meta.get('data') or {}
+            config = jsonutils.loads(data.action_meta.get('data') or {})
             client = utils.get_nova_client(ctx)
             host = config.get('dest_host', None)
             shared = config.get('shared_storage', True)
