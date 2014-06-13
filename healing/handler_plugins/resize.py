@@ -22,7 +22,7 @@ class Resize(base.HandlerPluginBase):
 
         self.register_action(data)
         try:
-	    config = data.action_data.get('data', {})
+	    config = data.action_meta.get('data', {})
 	    flavor = config.get('flavor', 'm1.large')
 
             client = utils.get_nova_client(ctx)
