@@ -88,8 +88,8 @@ class CeilometerAlarm(alarm_base.AlarmBase):
             fields['statistic'] = self.statistic
         if self.evaluation_period:
             fields['evaluation_period'] = self.evaluation_period
-        if project:
-            fields['project_id'] = project
+        #if project:
+        #    fields['project_id'] = project
         fields.update(self.hooks)
         if self.query:
             # TODO: build query base on ceilometer expectation
@@ -333,8 +333,9 @@ class ResourceAlarm(CeilometerAlarm):
             #TODO: check if this is needed
             #if self.options.get('project_id'):
             #    self.add_query('project_id', self.options.get('project_id'))
-            if self.options.get('resource_id'):
-                self.add_query('resource_id', self.options.get('resource_id'))
+            resource = self.options.get('resource_id', self.options.get('project_id'))
+            if resource:
+                self.add_query('resource_id', resource)
             # DO A WITH with autodelete if fail.. or move external_created
             # to parent...
             super(ResourceAlarm, self).create()
