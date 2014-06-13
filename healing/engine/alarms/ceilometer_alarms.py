@@ -330,8 +330,9 @@ class ResourceAlarm(CeilometerAlarm):
                 self.set_default_alarm_hook({'contract_id':
                                              self.alarm_track.contract_id})
 
-            if self.options.get('project_id'):
-                self.add_query('project_id', self.options.get('project_id'))
+            #TODO: check if this is needed
+            #if self.options.get('project_id'):
+            #    self.add_query('project_id', self.options.get('project_id'))
             if self.options.get('resource_id'):
                 self.add_query('resource_id', self.options.get('resource_id'))
             # DO A WITH with autodelete if fail.. or move external_created
