@@ -1,7 +1,7 @@
 import abc
 from healing.openstack.common import jsonutils
 from healing import exceptions
-from healing.handler_plugins.action_data import ActionData
+from healing.objects import action
 
 class FormatterBase(object):
     """Format data based on source
@@ -35,9 +35,9 @@ class CustomFormatter(FormatterBase):
         if not target_resource:
             raise  exceptions.InvalidDataException('Missing target')
 
-        return ActionData(name, source=self.SOURCE,
-                          target_resource=target_resource,
-                          data=data, headers={})
+        return action.Action.from_data(name, 
+                                      target_resource=target_resource,
+                                      data=data, headers={})
 
 
 

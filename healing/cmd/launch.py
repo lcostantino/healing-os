@@ -16,6 +16,8 @@
 import sys
 import eventlet
 
+from healing.rpc import rpc
+
 eventlet.monkey_patch(
     os=True,
     select=True,
@@ -36,6 +38,8 @@ from oslo.config import cfg
 
 from healing import config
 from healing.api import app
+from healing import objects
+from healing import service
 from wsgiref import simple_server
 from healing.openstack.common import log as logging
 
@@ -43,19 +47,29 @@ from healing.openstack.common import log as logging
 LOG = logging.getLogger(__name__)
 
 
+def launch_action():
+    objects.register_all()
+    server = service.Service.create(binary='healing-action_executor', topic=cfg.CONF.action_executor.topic,
+                                    manager=cfg.CONF.action_executor.manager,
+                                    periodic_enable=cfg.CONF.action_executor.periodic_enable,
+                                    periodic_interval_max=cfg.CONF.action_executor.task_period)
+    service.serve(server, workers=config.CONF.action_executor.workers)
+    service.wait()
+
+    
 #from mistral
-def launch_api(transport):
+def launch_api():
     host = cfg.CONF.api.host
     port = cfg.CONF.api.port
     
     if cfg.CONF.api.use_cherrypy:
         import cherrypy
         from cherrypy import wsgiserver
-        server = wsgiserver.CherryPyWSGIServer((host, port), app.setup_app(transport=transport),
+        server = wsgiserver.CherryPyWSGIServer((host, port), app.setup_app(),
                                                server_name='simpleapp')
         starter = server.start
     else:
-        server = simple_server.make_server(host, port, app.setup_app(transport=transport))
+        server = simple_server.make_server(host, port, app.setup_app())
         starter = server.serve_forever
     LOG.info("Healing API is serving on http://%s:%s (PID=%s)" %
              (host, port, os.getpid()))
@@ -64,7 +78,7 @@ def launch_api(transport):
 
 def launch_any(transport, options):
     # Launch the servers on different threads.
-    threads = [eventlet.spawn(LAUNCH_OPTIONS[option], transport)
+    threads = [eventlet.spawn(LAUNCH_OPTIONS[option])
                for option in options]
     [thread.wait() for thread in threads]
 
@@ -78,6 +92,7 @@ def create_db():
 LAUNCH_OPTIONS = {
     'api': launch_api,
     'db': create_db,
+    'action': launch_action
 }
 
 
@@ -102,13 +117,16 @@ def main():
         # get delivered if the Mistral servers are launched on different
         # processes because the "fake" transport is using an in process queue.
         #transport = messaging.get_transport(cfg.CONF)
-        transport = None
         try:
             create_db()
         except Exception as e:
             print e
             pass
-        launch_api(transport)
+        
+        server = cfg.CONF.server or "api"
+        rpc.init(config.CONF)
+
+        LAUNCH_OPTIONS[server]()
     except RuntimeError, e:
         sys.stderr.write("ERROR: %s\n" % e)
         sys.exit(1)

@@ -16,7 +16,8 @@ from healing.openstack.common import timeutils
 ACTION_STARTED = 'started'
 ACTION_FINISHED = 'finished' #mean sucess..
 ACTION_ERROR = 'error'
-
+ACTION_PENDING = 'pending'
+ACTION_DISCARDED = 'discarded'
 
 class Action(base.HealingPersistentObject, base.HealingObject):
     VERSION = "1.0"
@@ -31,6 +32,23 @@ class Action(base.HealingPersistentObject, base.HealingObject):
               'internal_data': fields.StringField(nullable=True),
               'output': fields.StringField(nullable=True)}
 
+        
+    @staticmethod
+    def from_data(name=None, target_resource=None,
+                 data=None, headers=None, internal_data=None,
+                 request_id=None, project_id=None,
+                 status=ACTION_PENDING):
+        action = Action()
+        action.name = name
+        action.target_id = target_resource
+        action.action_meta_obj = {'headers': headers, 'data': data}
+        action.internal_data_obj = internal_data
+        action.request_id = request_id
+        action.output = None
+        action.project_id = project_id
+        action.status = status
+        return action
+    
     @staticmethod
     def _from_db_object(action, db_action):
         for key in action.fields:
@@ -45,11 +63,12 @@ class Action(base.HealingPersistentObject, base.HealingObject):
 
     @classmethod
     def get_by_name_and_target(cls, name, target, updated_time_after=None,
-                               status=None):
+                               status=None, ignore_status=None):
         """ return the last one base on created_at."""
         db_action = db_api.action_get_by_name_and_target(name, target,
                                             updated_time_gt=updated_time_after,
-                                            status=status)
+                                            status=status,
+                                            ignore_status=ignore_status)
         return cls._from_db_object(cls(), db_action)
 
     @classmethod

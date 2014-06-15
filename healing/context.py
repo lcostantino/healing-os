@@ -15,4 +15,14 @@ class Context(object):
 
     def get_password_or_id(self):
         return self.user_id or self.password
-
+    
+    def to_dict(self):
+        return {'user': self.user, 'token': self.token,
+                'user_id': self.user_id,
+                'project': self.project,
+                'roles': self.roles,
+                'service_catalog': self.service_catalog}
+    
+    @classmethod
+    def from_dict(cls, data):
+        return cls(**data)

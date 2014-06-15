@@ -17,48 +17,36 @@ class Evacuate(base.HandlerPluginBase):
     DESCRIPTION = "Evacuate VM (shared storage)"
     NAME = "evacuate"
 
-    def start(self, ctx, data):
+    def start(self, ctx, action):
         """ do something...  spawn thread?
-            :param data ActionData Object
+            :param action Action Object
             shared_storage?
         """
-        if not self.can_execute(data):
+        if not self.can_execute(action):
+            self.register_action(action, discard=True)
             raise exceptions.ActionInProgress()
-
-        self.register_action(data)
+        
+        self.register_action(action)
         try:
-            config = jsonutils.loads(data.action_meta.get('data') or {})
+            config = jsonutils.loads(action.action_meta.get('data') or {})
             client = utils.get_nova_client(ctx)
             host = config.get('dest_host', None)
             shared = config.get('shared_storage', True)
-            output = client.servers.evacuate(server=data.target_resource,
+            output = client.servers.evacuate(server=action.target_id,
                                             host=host, on_shared_storage=shared)
-            self.current_action.output = str(output)
+            output = str(output)
         except Exception as e:
             LOG.exception(e)
-            self.current_action.output = e.message
-            self.stop(data, True)
+            self.error(action, message=str(e))
             return None
 
-        self.stop(data)
-        return self.current_action.id
+        self.finish(action, message=output)
+        return action.id
 
 
-    def stop(self, data, error=False, message=None):
-        #this will work if not in thread probably, if we change this
-        #add the id to the data and context
-        if error:
-            self.current_action.error()
-        else:
-            self.current_action.stop()
-
-        self.current_action.save()
-        LOG.debug("Task stopped")
-
-
-    def can_execute(self, data, ctx=None):
+    def can_execute(self, action, ctx=None):
         """
-        :param data ActionData Obj
+        :param action Actionaction Obj
         move to parent?
         """
-        return super(Evacuate, self).can_execute(data, ctx=ctx)
+        return super(Evacuate, self).can_execute(action, ctx=ctx)

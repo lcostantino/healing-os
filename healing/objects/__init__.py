@@ -1,3 +1,3 @@
 
 def register_all():
-    __import__('healing.objects.actions')
+    __import__('healing.objects.action')

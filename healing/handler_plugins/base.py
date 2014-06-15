@@ -28,17 +28,31 @@ class HandlerPluginBase(object):
         return self._last_action
     
     @abc.abstractmethod
-    def start(self, ctx, data):
+    def start(self, ctx, action):
         """start action for ActionDataObj.
            :param ctx current Context
-           :param data ActionData Object
+           :param action ActionData Object
            Can raise ActionInProgress
            Return action id
         """
-
-    @abc.abstractmethod
-    def stop(self, data, error=False):
-        """stop action for data."""
+        
+    def error(self, action, message=None):
+        self.stop(action, action_obj.ACTION_ERROR,  message)
+    
+    def discard(self, action, message=None):
+        self.stop(action, action_obj.ACTION_DISCARDED,  message)
+        
+    def finish(self, action, message):
+        self.stop(action, action_obj.ACTION_FINISHED,  message)
+    
+    def stop(self, action, status, message=None):
+        """stop action.."""
+        #this will work if not in thread probably, if we change this
+        #add the id to the action and context
+        action.status = status
+        action.output = message
+        action.save()
+        LOG.debug("Task stopped")
 
     def abort(self):
         pass
@@ -47,33 +61,30 @@ class HandlerPluginBase(object):
         """ Get current registered action object."""
         return self.current_action
 
-    def prepare_for_checks(self, data, ctx=None):
-        """ Fill minimal data for restrictions to avoid having 
+    def prepare_for_checks(self, action, ctx=None):
+        """ Fill minimal action for restrictions to avoid having 
             plugin handler dependency here.."""
         try:
             self._last_action = action_obj.Action.get_by_name_and_target(
                                                         self.NAME,
-                                                        data.target_resource)
+                                                        action.target_id,
+                                                        ignore_status='pending')
         except exceptions.NotFoundException:
             LOG.info("No action found for %s. continue" % self.NAME)
         
-    def can_execute(self, data, ctx=None):
+    def can_execute(self, action, ctx=None):
         """can execute check. depends on plugin.
            should call parent and implement custom logic
-           :param data ActionData object
+           :param action ActionData object
         """
         return True
     
-    def register_action(self, data, status=action_obj.ACTION_STARTED):
-        #todo throw propoer exeception
-        #TODO: move to objects
-        action = action_obj.Action()
-        action.name = self.NAME
-        action.action_meta_obj = data.action_meta or {}
-        action.target_id = data.target_resource
-        action.status = action_obj.ACTION_STARTED
-        action.request_id = data.request_id
-        action.create()
+    def register_action(self, action, status=action_obj.ACTION_STARTED,
+                        discard=False):
         self.current_action = action
+        if discard:
+            status = action_obj.ACTION_DISCARDED
+        action.status = status
+        action.save()
 
 #get_name mandatory?

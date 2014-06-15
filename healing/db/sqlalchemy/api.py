@@ -148,10 +148,15 @@ def action_get_by_filter(filters, updated_time_gt=None, order='-created_at'):
     :param updated_time_gt: if set, will do updated_at > updated_time_gt
     """
     query = model_query(m.Action)
+    ignore_status = filters.pop('ignore_status', None)
     query = query.filter_by(**filters)
     if updated_time_gt:
         query = query.filter((m.Action.updated_at >= updated_time_gt) |
                              (m.Action.create_at >= updated_time_gt))
+    
+    if ignore_status:
+        query = query.filter(m.Action.status != ignore_status)
+        
     result = query.order_by(get_order(order)).first()
     if not result:
         raise exc.NotFoundException("action not found [filters=%s]" %

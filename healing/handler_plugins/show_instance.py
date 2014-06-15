@@ -13,39 +13,25 @@ class InstanceShow(base.HandlerPluginBase):
     DESCRIPTION = "Just output nova show for instance"
     NAME = "nova_show"
 
-    def start(self, ctx, data):
+    def start(self, ctx, action):
         """ do something...  spawn thread?
-            :param data ActionData Object
+            :param action ActionData Object
         """
-        if not self.can_execute(data):
+        if not self.can_execute(action):
+            self.register_action(action, discard=True)
             raise exceptions.ActionInProgress()
 
-        self.register_action(data)
+        self.register_action(action)
         try:
             client = utils.get_nova_client(ctx)
-            lista = client.servers.get(data.target_resource)
-            self.current_action.output = str(lista)
+            output = client.servers.get(action.target_id)
         except Exception as e:
             LOG.exception(e)
-            self.current_action.output = e.message
-            self.stop(data, True)
+            self.error(action, message=e.message)
             return None
 
-        self.stop(data)
+        self.finish(action, str(output))
         return self.current_action.id
 
-
-    def stop(self, data, error=False, message=None):
-        #this will work if not in thread probably, if we change this
-        #add the id to the data and context
-        if error:
-            self.current_action.error()
-        else:
-            self.current_action.stop()
-
-        self.current_action.save()
-        LOG.debug("Task stopped")
-
-
-    def can_execute(self, data, ctx=None):
-        return super(InstanceShow, self).can_execute(data, ctx=ctx)
+    def can_execute(self, action, ctx=None):
+        return super(InstanceShow, self).can_execute(action, ctx=ctx)

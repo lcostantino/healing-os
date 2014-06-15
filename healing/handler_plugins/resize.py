@@ -14,45 +14,31 @@ class Resize(base.HandlerPluginBase):
     DESCRIPTION = "Resize to a bigger flavor"
     NAME = "resize"
 
-    def start(self, ctx, data):
+    def start(self, ctx, action):
         """ do something...  spawn thread?
-            :param data ActionData Object
+            :param action ActionData Object
         """
-        if not self.can_execute(data):
+        if not self.can_execute(action):
+            self.register_action(action, discard=True)
             raise exceptions.ActionInProgress()
 
-        self.register_action(data)
+        self.register_action(action)
         try:
-            options = jsonutils.loads(data.action_meta.get('data') or {})
+            options = jsonutils.loads(action.action_meta.get('data') or {})
             flavor = options.get('flavor_id', '42')
             client = utils.get_nova_client(ctx)
-            output = client.servers.resize(data.target_resource, flavor=flavor)
-            self.current_action.output = str(output)
+            output = client.servers.resize(action.target_id, flavor=flavor)
         except Exception as e:
             LOG.exception(e)
-            self.current_action.output = e.message
-            self.stop(data, True)
+            self.error(action, e.message)
             return None
 
-        self.stop(data)
+        self.finish(action, str(output))
         return self.current_action.id
 
-
-    def stop(self, data, error=False, message=None):
-        #this will work if not in thread probably, if we change this
-        #add the id to the data and context
-        if error:
-            self.current_action.error()
-        else:
-            self.current_action.stop()
-
-        self.current_action.save()
-        LOG.debug("Task stopped")
-
-
-    def can_execute(self, data, ctx=None):
+    def can_execute(self, action, ctx=None):
         """
-        :param data ActionData Obj
+        :param action ActionData Obj
         move to parent?
         """
-        return super(Resize, self).can_execute(data, ctx=ctx)
+        return super(Resize, self).can_execute(action, ctx=ctx)

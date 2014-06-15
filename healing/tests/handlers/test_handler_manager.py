@@ -15,7 +15,7 @@ import mock
 from healing import handler_manager
 from healing.handler_plugins import plugin_config
 from healing.handler_plugins import base as base_plugin
-from healing.handler_plugins import action_data
+from healing.objects import action
 from healing.handler_plugins.restrictions import base as restr_base
 from healing.tests import base
 import yaml
@@ -25,7 +25,7 @@ class FakeRestriction(restr_base.RestrictionBase):
     CFG_PARAMS = {}
     NAME = 'fakerestriction'
 
-    def can_execute(self, config, last_action=None, ctx=None, data=None,
+    def can_execute(self, config, last_action=None, ctx=None, action=None,
                     **kwargs):
         return True
 
@@ -34,7 +34,7 @@ class FakeRestriction2(restr_base.RestrictionBase):
     CFG_PARAMS = {}
     NAME = 'fakerestriction2'
 
-    def can_execute(self, config, last_action=None, ctx=None, data=None,
+    def can_execute(self, config, last_action=None, ctx=None, action=None,
                     **kwargs):
         return False
 
@@ -78,10 +78,10 @@ RESTRICTIONS_MGR = {FakeRestriction.NAME: FakeObj(FakeRestriction.NAME,
                                                    FakeRestriction2)}
 
 
-def get_action_data(name='fake', target_resource='fake', source='custom',
+def get_action_data(name='fake', target_resource='fake',
                     data=None, headers=None, internal_data=None):
-    return action_data.ActionData(name, target_resource, source, data, headers,
-                                  internal_data)
+    return action.Action.from_data(name, target_resource, data, headers,
+                                   internal_data)
 
 
 def get_sample_config():
@@ -181,7 +181,7 @@ class TestHandlerManager(base.TestCase):
         FakeRestriction.can_execute = mock.Mock(return_value=True)
         FakeRestriction2.can_execute = mock.Mock(return_value=True)
 
-        self.handler_manager.start_plugin(PLUGIN_NAMES[0], ctx=None, data=data)
+        self.handler_manager.start_plugin(PLUGIN_NAMES[0], ctx=None, action=data)
         self.assertTrue(prepare_mock.called)
         self.assertTrue(FakeRestriction.can_execute.called)
         self.assertFalse(FakeRestriction2.can_execute.called)
@@ -199,7 +199,7 @@ class TestHandlerManager(base.TestCase):
         FakeRestriction.can_execute = mock.Mock(return_value=False)
         FakeRestriction2.can_execute = mock.Mock(return_value=True)
 
-        self.handler_manager.start_plugin(PLUGIN_NAMES[0], ctx=None, data=data)
+        self.handler_manager.start_plugin(PLUGIN_NAMES[0], ctx=None, action=data)
         self.assertTrue(prepare_mock.called)
         self.assertTrue(FakeRestriction.can_execute.called)
         self.assertTrue(FakeRestriction2.can_execute.called)
@@ -217,7 +217,7 @@ class TestHandlerManager(base.TestCase):
         FakeRestriction.can_execute = mock.Mock(return_value=False)
         FakeRestriction2.can_execute = mock.Mock(return_value=False)
         FakePlugin.start = mock.Mock()
-        self.handler_manager.start_plugin(PLUGIN_NAMES[0], ctx=None, data=data)
+        self.handler_manager.start_plugin(PLUGIN_NAMES[0], ctx=None, action=data)
         self.assertTrue(prepare_mock.called)
         self.assertTrue(FakeRestriction.can_execute.called)
         self.assertTrue(FakeRestriction2.can_execute.called)

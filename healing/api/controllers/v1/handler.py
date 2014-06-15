@@ -28,6 +28,7 @@ from healing.handler_manager import get_plugin_handler
 from healing import data_convert
 from healing import utils
 from healing import context
+from healing.actionexecutor import rpcapi
 
 LOG = logging.getLogger(__name__)
 
@@ -46,7 +47,8 @@ class Handlers(resource.Resource):
 
 
 class HandlersController(rest.RestController):
-
+    action_rpc = rpcapi.ActionAPI()
+    
     @wsme_pecan.wsexpose(Handlers)
     def get_all(self):
         LOG.debug("Fetch handlers plugins")
@@ -88,11 +90,14 @@ class HandlersController(rest.RestController):
         action_data = conversor.format(name, data,
                                        target_resource=target_resource,
                                        headers=pecan.request.headers)
+        action_data.create()
         LOG.debug(action_data)
         #TODO: Retrieve context if token in header from middleware
         #Should be done on authorization? If not provided used admin
         #build context should not call authorize in that case
         ctx = utils.build_context(None, True)
-        return {'action_id': manager.start_plugin(name, ctx=ctx, data=action_data)}
+        self.action_rpc.run_action(ctx, [action_data])
+        return {'action_id': action_data.id}
+        #return {'action_id': manager.start_plugin(name, ctx=ctx, action=action_data)}
 
 

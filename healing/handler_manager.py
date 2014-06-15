@@ -94,13 +94,13 @@ class HandlerManager(object):
         run_plugins = []
         for x in plugin_group:
             try:
-                plug = self._get_and_check_plugin(x.name, data=x)
+                plug = self._get_and_check_plugin(x.name, action=x)
                 if plug:
                     run_plugins.append((plug, x))
             except exceptions.CannotStartPlugin:
                 pass
         for plug_obj,data in run_plugins:
-            self.thread_pool.add_thread(plug_obj.start, ctx=ctx, data=data)
+            self.thread_pool.add_thread(plug_obj.start, ctx=ctx, action=data)
         self.thread_pool.wait()
         return len(run_plugins)
 

@@ -17,7 +17,9 @@
 from healing.openstack.common import jsonutils
 from healing.openstack.common import log as logging
 from healing.openstack.common import timeutils
+from healing.actionexecutor import rpcapi
 from healing import exceptions as exc
+from healing.handler_manager import get_plugin_handler as handler_manager
 from healing.engine.alarms import filters
 from healing.engine.alarms import manager as alarm_manager
 from healing.engine.alarms import generic_alarms
@@ -25,8 +27,7 @@ from healing.engine.alarms import ceilometer_alarms as cel_alarms
 from healing.objects.sla_contract import SLAContract as sla_contract
 from healing.objects.failure_track import FailureTrack as failure_track
 from healing.objects.alarm_track import AlarmTrack
-from healing.handler_plugins.action_data import ActionData
-from healing.handler_manager import get_plugin_handler as handler_manager
+from healing.objects.action import Action
 from healing import utils
 
 LOG = logging.getLogger(__name__)
@@ -69,10 +70,8 @@ def validate_contract_info(contract_dict, update=False):
 
 
 class SLAContractEngine():
-    HOST_DOWN_ALARM_TYPE = cel_alarms.HostDownUniqueAlarm.ALARM_TYPE
-    HOST_DOWN_ALARM_METER = 'services.compute_host.down'
-    HOST_DOWN_ALARM_OP = 'eq'
 
+    
     def _post_alarm_data(self, ctx, alarm, contract):
         """
         Some alarms retrieve information to fulfill the contract
@@ -186,6 +185,20 @@ class SLAContractEngine():
 
 
 class SLAAlarmingEngine():
+    action_api = rpcapi.ActionAPI()
+    
+    def _record_action(self, name, data, request_id, target_resource):
+        try:
+            act = Action.from_data(name=name,
+                                   data=data,
+                                   request_id=request_id,
+                                   target_resource=target_resource)
+            act.create()
+            return act
+        except Exception as e:
+            LOG.exception(e)
+        return None
+           
     def _process_resource_alarm(self, ctx, alarm, contract, source):
         """ Untested."""
         contract = contract[0]
@@ -207,11 +220,15 @@ class SLAAlarmingEngine():
 
         actions = []
         for x in resources:
-            actions.append(ActionData(name=contract.action,
-                                      data=contract.action_options,
-                                      source=source,
-                                      request_id=failure_id,
-                                      target_resource=x))
+            record = self._record_action(name=contract.action,
+                                         data=contract.action_options,
+                                         request_id=failure_id,
+                                         target_resource=x)
+        
+            if record:
+                actions.append(record)
+            
+            
         if actions:
             handler_manager().start_plugins_group(ctx, actions)
         # WARN: we may want to change state alarm now if it's tenant
@@ -268,26 +285,32 @@ class SLAAlarmingEngine():
         for prj, action in spec_contract_actions.iteritems():
             vms = [x for x in vms_by_tenant.get(prj, [])]
             for vm in vms:
-                actions.append(ActionData(name=action[0], source=source,
-                                          data=action[1],
-                                          request_id=failure_id,
-                                          target_resource=vm['id']))
+                record = self._record_action(name=action[0],
+                                             data=action[1],
+                                             request_id=failure_id,
+                                             target_resource=vm['id'])
+                if record:
+                    actions.append(record)
+                    
             vms_by_tenant.pop(prj, None)
         # may need refactor, need to process twice
         if generic_contract:
 
             for prj, vms in vms_by_tenant.iteritems():
                 for vm in vms:
-                    actions.append(ActionData(name=generic_contract[0],
-                                              data=generic_contract[1],
-                                              source=source,
-                                              request_id=failure_id,
-                                              target_resource=vm['id']))
+                    record = self._record_action(name=generic_contract[0],
+                                                 data=generic_contract[1],
+                                                 request_id=failure_id,
+                                                 target_resource=vm['id'])
+                    if record:
+                        actions.append(record)
+                        
         for x in resources:
             utils.set_cache_value(x)
 
         if actions:
-            handler_manager().start_plugins_group(ctx, actions)
+            self.action_api.run_action(ctx ,actions)
+            
 
     def alert(self, ctx, alarm_id, source, contract_id=None):
         if contract_id:

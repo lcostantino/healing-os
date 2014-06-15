@@ -49,11 +49,13 @@ def action_get(action_id):
 
 
 def action_get_by_name_and_target(name, target, updated_time_gt=None,
-                                  status=None):
+                                  status=None, ignore_status=None):
     filters = {'name': name,
                'target_id': target}
     if status:
         filters['status'] = status
+    else:
+        filters['ignore_status'] = ignore_status
     return IMPL.action_get_by_filter(filters, updated_time_gt=updated_time_gt)
 
 
