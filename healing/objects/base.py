@@ -322,7 +322,6 @@ class HealingObject(object):
     @classmethod
     def obj_from_primitive(cls, primitive, context=None):
         """Object field-by-field hydration."""
-        print primitive
         if primitive['healing_object.namespace'] != 'healing':
             # NOTE(danms): We don't do anything with this now, but it's
             # there for "the future"

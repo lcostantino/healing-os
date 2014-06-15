@@ -30,6 +30,7 @@ class Mistral(base.HandlerPluginBase):
             raise exceptions.ActionInProgress()
 
         self.register_action(action)
+       
         options = action.action_meta_obj.get('data') or {}
         workflow = options.get('workflow', None)
         task = options.get('task', None)

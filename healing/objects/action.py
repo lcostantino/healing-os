@@ -4,6 +4,7 @@ prepare in the future for real object<>rpc/db versioning
 #TODO: create base class- add mixin persisten for updated_at & created_at to update on each save
 #TODO: check if we need to add context with session to avoid creating new ones
 #TODO: Add action state
+import six
 import datetime
 
 from healing.objects import base
@@ -41,6 +42,15 @@ class Action(base.HealingPersistentObject, base.HealingObject):
         action = Action()
         action.name = name
         action.target_id = target_resource
+        
+        if data and isinstance(data, six.string_types):
+            try:
+                data = jsonutils.loads(data)
+            except:
+                raise
+                LOG.error("Invalid data for action. must be dict"
+                          "for json string")
+                data = None
         action.action_meta_obj = {'headers': headers, 'data': data}
         action.internal_data_obj = internal_data
         action.request_id = request_id

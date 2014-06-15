@@ -282,13 +282,13 @@ class SLAAlarmingEngine():
         spec_contract_actions = {}
         generic_contract = False
         for x in contracts:
-            if x.project_id is not None:
+            if x.project_id:
                 spec_contract_actions[x.project_id] = (x.action,
                                                        x.action_options)
             else:
                 generic_contract = (x.action, x.action_options)
         actions = []
-
+        
         for prj, action in spec_contract_actions.iteritems():
             vms = [x for x in vms_by_tenant.get(prj, [])]
             for vm in vms:
@@ -302,7 +302,6 @@ class SLAAlarmingEngine():
             vms_by_tenant.pop(prj, None)
         # may need refactor, need to process twice
         if generic_contract:
-
             for prj, vms in vms_by_tenant.iteritems():
                 for vm in vms:
                     record = self._record_action(name=generic_contract[0],
