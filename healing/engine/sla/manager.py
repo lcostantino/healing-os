@@ -249,7 +249,7 @@ class SLAAlarmingEngine():
             resources = [x for x in resources if
                          not utils.get_cache_value(x, penalize=True)]
             LOG.debug('Resources after cache check %s' % str(resources))
-        resources = ['ubuntu-SVT13125CLS']
+        #resources = ['ubuntu-SVT13125CLS']
         if not resources:
             LOG.warning('no affected resources associated to the alarm '
                         'in time frame seconds: %s' % time_frame)
