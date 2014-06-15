@@ -28,7 +28,7 @@ class Evacuate(base.HandlerPluginBase):
         
         self.register_action(action)
         try:
-            config = jsonutils.loads(action.action_meta.get('data') or {})
+            config = action.action_meta_obj.get('data') or {}
             client = utils.get_nova_client(ctx)
             host = config.get('dest_host', None)
             shared = config.get('shared_storage', True)

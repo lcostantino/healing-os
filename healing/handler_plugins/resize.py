@@ -24,7 +24,7 @@ class Resize(base.HandlerPluginBase):
 
         self.register_action(action)
         try:
-            options = jsonutils.loads(action.action_meta.get('data') or {})
+            options = action.action_meta_obj.get('data') or {}
             flavor = options.get('flavor_id', '42')
             client = utils.get_nova_client(ctx)
             output = client.servers.resize(action.target_id, flavor=flavor)
