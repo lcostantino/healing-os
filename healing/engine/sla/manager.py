@@ -67,8 +67,14 @@ def validate_contract_info(contract_dict, update=False):
         if not ctype.get('project_id') and not ctype.get('resoure_id'):
             raise exc.InvalidActionException('Project ID or Resource ID '
                                              'required for Resource Alarm')
-
-
+    if not contract_dict.get('action_options', None):
+        contract_dict['action_options'] = None
+    else:
+        if contract_dict['action_options'] == '""':
+            # TODO: fix this in horizon and client
+            contract_dict['action_options'] = None
+            
+            
 class SLAContractEngine():
 
     
