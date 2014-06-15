@@ -9,7 +9,7 @@ debug = True
 log_file = /tmp/healing.log
 
 # Log levels for specific modules
-default_log_levels = mistral=DEBUG,mistral.api=DEBUG,wsme=DEBUG,amqplib=DEBUG
+default_log_levels = healing=DEBUG,healing.api=DEBUG,wsme=DEBUG,amqplib=DEBUG
 
 
 # Rabbit config for oslo.messaging

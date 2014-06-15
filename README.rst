@@ -19,5 +19,10 @@ Features
 --------
 
 
+Execute
+----------
+API)	4 python healing/cmd/launch.py -server action --config-file etc/healing.conf.example
+Action)	$ python healing/cmd/launch.py -server api --config-file etc/healing.conf.example
+
 
 
