@@ -230,7 +230,8 @@ class SLAAlarmingEngine():
             
             
         if actions:
-            handler_manager().start_plugins_group(ctx, actions)
+            self.action_api.run_action(ctx ,actions)
+
         # WARN: we may want to change state alarm now if it's tenant
         # scoped, so it get repeated?
 
