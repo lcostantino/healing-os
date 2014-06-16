@@ -110,3 +110,4 @@ class FailureTrack(mb.HealingBase):
     time = sa.Column(sa.DateTime)
     alarm_id = sa.Column(sa.String(255))
     data = sa.Column(sa.String(255), nullable=True)
+    contract_names = sa.Column(sa.String(255), nullable=True)

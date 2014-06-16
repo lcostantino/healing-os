@@ -239,7 +239,7 @@ class HostDownUniqueAlarm(CeilometerAlarm):
 
             external_created = False
             self.options.pop('project_id')
-            
+
             # TODO: if duplicated, raise or we expect the caller
             # to handle that?
             first_alarm = self._is_first_alarm()
@@ -333,7 +333,8 @@ class ResourceAlarm(CeilometerAlarm):
             #TODO: check if this is needed
             #if self.options.get('project_id'):
             #    self.add_query('project_id', self.options.get('project_id'))
-            resource = self.options.get('resource_id', self.options.get('project_id'))
+            resource = self.options.get('resource_id',
+                                        self.options.get('project_id'))
             if resource:
                 self.add_query('resource_id', resource)
             # DO A WITH with autodelete if fail.. or move external_created
@@ -411,7 +412,7 @@ class ExternalResourceAlarm(CeilometerAlarm):
                 self.extra_alarm_data['resource_id'] = x.get('value')
                 return
         LOG.warning('missing resource_id in query, should be provided in contract')
-        
+
 
     def create(self):
         try:

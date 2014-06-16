@@ -43,6 +43,7 @@ class SLAContract(resource.Resource):
     resource_id = wtypes.text
     alarm_data = wtypes.text
     action_options = wtypes.text
+    name = wtypes.text
 
 
 class SLAAlarm(resource.Resource):
@@ -61,7 +62,7 @@ class FailureTrack(resource.Resource):
     time = wtypes.datetime.datetime
     alarm_id = wtypes.text
     data = wtypes.text
-
+    contract_names = wtypes.text
 
 class SLAContracts(resource.Resource):
     """SLA contract resource list."""
@@ -152,7 +153,6 @@ class SLATrackingController(rest.RestController):
     def get_all(self):
         failure_dicts = self.engine.track_failure_get_all()
         failures = [FailureTrack.from_dict(obj) for obj in failure_dicts]
-
         return FailureTracks(failures=failures)
 
 
