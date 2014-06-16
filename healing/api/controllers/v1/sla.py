@@ -59,7 +59,7 @@ class FailureTrack(resource.Resource):
     """Failure Track resource."""
 
     id = wtypes.text
-    time = wtypes.datetime.datetime
+    created_at = wtypes.datetime.datetime
     alarm_id = wtypes.text
     data = wtypes.text
     contract_names = wtypes.text

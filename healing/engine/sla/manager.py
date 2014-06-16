@@ -214,8 +214,7 @@ class SLAAlarmingEngine():
             resources = [project]
             
         affected_contracts = [{'name': contract.name, 'id': contract.id}] 
-        failure_id = self._track_failure(timeutils.utcnow(), alarm.alarm_id,
-                                         resources, 
+        failure_id = self._track_failure(alarm.alarm_id, resources, 
                                          contract_names=affected_contracts)
         if not contract.resource_id:
             time_frame = (alarm.period * alarm.evaluation_period) #* 2
@@ -236,8 +235,6 @@ class SLAAlarmingEngine():
         
             if record:
                 actions.append(record)
-            
-            
         if actions:
             self.action_api.run_action(ctx ,actions)
 
@@ -265,8 +262,7 @@ class SLAAlarmingEngine():
                         'in time frame seconds: %s' % time_frame)
             return
         affected_contracts = [{'name': x.name, 'id': x.id} for x in contracts]
-        failure_id = self._track_failure(timeutils.utcnow(), alarm.alarm_id,
-                                         resources, 
+        failure_id = self._track_failure(alarm.alarm_id, resources, 
                                          contract_names=affected_contracts)
         client = utils.get_nova_client(ctx)
         vms_by_tenant = {}
@@ -344,9 +340,8 @@ class SLAAlarmingEngine():
         else:
             return self._process_resource_alarm(ctx, alarm, contracts, source)
 
-    def _track_failure(self, time_utc, alarm_id, data, contract_names=None):
+    def _track_failure(self, alarm_id, data, contract_names=None):
         failure = failure_track()
-        failure.time = time_utc
         failure.alarm_id = alarm_id
         if data:
             failure.data = jsonutils.dumps(data)
