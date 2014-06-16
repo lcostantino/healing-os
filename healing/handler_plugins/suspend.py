@@ -25,8 +25,8 @@ class Suspend(base.HandlerPluginBase):
         try:
             client = utils.get_nova_client(ctx)
             config = action.action_meta_obj.get('data') or {}
-            action = config.get('action', 'suspend')
-            if action == 'resume':
+            nova_action = config.get('action', 'suspend')
+            if nova_action == 'resume':
                 output = client.servers.resume(action.target_id)
             else:
                 output = client.servers.suspend(action.target_id)

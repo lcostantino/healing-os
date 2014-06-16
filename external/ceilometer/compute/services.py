@@ -30,6 +30,8 @@ from ceilometer import sample
 class _Base(plugin.PollsterBase):
 
     def _is_down(self, service):
+	# warn can be disabled if you do halt and lose virt communication
+	# check
         if service.state == 'down' and service.status == 'enabled':
             return True
         return False
