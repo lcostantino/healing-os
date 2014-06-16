@@ -66,6 +66,7 @@ class SLAContract(mb.HealingBase):
     project_id = sa.Column(sa.String(80), nullable=True)
     type = sa.Column(sa.String(255), nullable=True)
     value = sa.Column(sa.String(255), nullable=True)
+    name = sa.Column(sa.String(255), nullable=True)
     action = sa.Column(sa.String(255), nullable=True)
     resource_id = sa.Column(sa.String(255), nullable=True)
     action_options = sa.Column(sa.String(255), nullable=True)
