@@ -30,6 +30,13 @@ logging.setup('Healing')
 rpc.init(config.CONF)
 
 ctx = context.Context('pepe')
-act = action.Action({'id': '22', 'name': 33, 'status' : 44, 'target_id': 222})
-print act
-print "OUTPUT:" , rpcapi.ActionAPI().test(ctx, {'s':'2'})
+ACT_OPT = {"workflow":"SendMail", "task":"sendResultEmail", "params": {"admin_email": "root@localhost", "smtp_server": "localhost", "output": "salida"}}
+
+act = action.Action.from_data(name='mistral',
+                             status= 'pending', 
+                             target_resource='222', 
+                             request_id='2222-3333',
+                             data=ACT_OPT)
+act.create()
+            
+print "OUTPUT:" , rpcapi.ActionAPI().run_action(ctx, act)

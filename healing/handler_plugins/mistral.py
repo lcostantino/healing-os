@@ -1,7 +1,6 @@
 from healing.handler_plugins import base
 
 from healing import exceptions
-from healing.openstack.common import jsonutils
 from healing.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
@@ -21,7 +20,6 @@ class Mistral(base.HandlerPluginBase):
             import mistralclient.api.client as client
             import mistralclient.api.executions as executions
         except:
-            raise
             LOG.error("Mistral not installed")
             return
 
@@ -30,11 +28,18 @@ class Mistral(base.HandlerPluginBase):
             raise exceptions.ActionInProgress()
 
         self.register_action(action)
-       
+
         options = action.action_meta_obj.get('data') or {}
         workflow = options.get('workflow', None)
         task = options.get('task', None)
-        params = options.get('params', None)
+        params = options.get('params', {})
+        if params.get('output'):
+            params['output'] = '%s [%s]' % (params['output'],
+                                            action.target_id)
+        else:
+            params['output'] = '[%s]' % action.target_id
+
+        params['request_id'] = action.request_id
         if not workflow or not task:
             LOG.warning('required parameters missing for mistral')
             self.stop(action, error=True)

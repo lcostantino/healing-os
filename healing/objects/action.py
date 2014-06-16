@@ -33,7 +33,7 @@ class Action(base.HealingPersistentObject, base.HealingObject):
               'internal_data': fields.StringField(nullable=True),
               'output': fields.StringField(nullable=True)}
 
-        
+
     @staticmethod
     def from_data(name=None, target_resource=None,
                  data=None, headers=None, internal_data=None,

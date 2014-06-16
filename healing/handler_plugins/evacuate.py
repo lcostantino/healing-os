@@ -25,7 +25,7 @@ class Evacuate(base.HandlerPluginBase):
         if not self.can_execute(action):
             self.register_action(action, discard=True)
             raise exceptions.ActionInProgress()
-        
+
         self.register_action(action)
         try:
             config = action.action_meta_obj.get('data') or {}
