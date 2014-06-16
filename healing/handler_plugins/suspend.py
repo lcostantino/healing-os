@@ -10,7 +10,7 @@ LOG = logging.getLogger(__name__)
 class Suspend(base.HandlerPluginBase):
     """Suspend VM
     """
-    DESCRIPTION = "Suspend VM"
+    DESCRIPTION = "Suspend/Resume VM"
     NAME = "suspend"
 
     def start(self, ctx, action):
@@ -24,7 +24,13 @@ class Suspend(base.HandlerPluginBase):
         self.register_action(action)
         try:
             client = utils.get_nova_client(ctx)
-            output = client.servers.suspend(action.target_id)
+            config = action.action_meta_obj.get('data') or {}
+            action = config.get('action', 'suspend')
+            if action == 'resume':
+                output = client.servers.resume(action.target_id)
+            else:
+                output = client.servers.suspend(action.target_id)
+
         except Exception as e:
             LOG.exception(e)
             self.error(action, message=e.message)
