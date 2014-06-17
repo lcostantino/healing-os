@@ -31,8 +31,11 @@ class FailureTrack(base.HealingPersistentObject, base.HealingObject):
             self[key] = values[key]
 
     @classmethod
-    def get_all(cls):
-        db_failure_tracks = db_api.failure_track_get_all()
+    def get_all(cls, start_date=None, end_date=None):
+
+        filters = {}
+
+        db_failure_tracks = db_api.failure_track_get_all(start_date, end_date)
 
         failure_tracks = []
         for db_failure_track in db_failure_tracks:

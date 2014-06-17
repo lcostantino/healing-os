@@ -143,8 +143,8 @@ def alarm_tracks_get_all(filters=None, order='created_at'):
 
 ###SLA_CONTRACT###
 
-def failure_track_get_all():
-    return IMPL.failure_track_get_all()
+def failure_track_get_all(start_date, end_date):
+    return IMPL.failure_track_get_all(start_date, end_date)
 
 
 def failure_track_create(values):

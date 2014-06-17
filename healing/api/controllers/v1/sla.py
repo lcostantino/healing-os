@@ -20,17 +20,22 @@ from pecan import rest
 import six
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
+from dateutil.parser import parse
 
 from healing import utils
 from healing.api.controllers import resource
 from healing.api.controllers.v1 import action
 from healing.engine.sla.manager import SLAContractEngine
 from healing.engine.sla.manager import SLAAlarmingEngine
+from healing.engine.sla.statistics import SLAStatisticsEngine
 from healing.openstack.common import jsonutils
 from healing.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 
+
+class SLAStatistics(resource.Resource):
+    value = wtypes.text
 
 class SLAContract(resource.Resource):
     """SLA contract resource."""
@@ -155,9 +160,41 @@ class SLATrackingController(rest.RestController):
         return FailureTracks(failures=failures)
 
 
+class SLAStatisticsController(rest.RestController):
+
+    def __init__(self):
+        self.engine = SLAStatisticsEngine()
+
+    @wsme_pecan.wsexpose(SLAStatistics, wtypes.text, wtypes.text, wtypes.text,
+                         wtypes.text, wtypes.text, wtypes.text)
+    def get(self, stat_type=None, from_date=None, to_date=None, project_id=None,
+            resource_id=None):
+        ctx = utils.get_context_req(pecan.request)
+
+        if stat_type is None or not stat_type == 'availability':
+            raise ValueError('The only stat_type supported is availability')
+
+        try:
+            start_date = parse(from_date)
+            end_date = parse(to_date)
+        except Exception as e:
+            raise ValueError('Dates should be UTC format')
+
+        stat = self.engine.get_availability(ctx,
+                                            project_id=project_id,
+                                            start_date=start_date,
+                                            end_date=end_date,
+                                            resource_id=resource_id)
+
+        print('#####################################')
+        print(stat)
+        return SLAStatistics.from_dict(dict(value=str(stat)))
+
+
 class SLAController(rest.RestController):
 
     contract = SLAContractController()
     alarming = SLAAlarmingController()
     tracking = SLATrackingController()
     actions = action.ActionsController()
+    statistics = SLAStatisticsController()
