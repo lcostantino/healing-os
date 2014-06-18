@@ -35,8 +35,8 @@ class Suspend(base.HandlerPluginBase):
             LOG.exception(e)
             self.error(action, message=e.message)
             return None
-
-        self.finish(action, str(output))
+        
+        self.finish(action, "")
         return self.current_action.id
 
     def can_execute(self, action, ctx=None):
