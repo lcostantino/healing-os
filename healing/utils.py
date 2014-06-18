@@ -234,7 +234,13 @@ def get_cache_value(resource, resource_type='host', penalize=False,
         LOG.warning("Penalize resource %s", key)
     return value
 
+
 def reset_cache():
     global _CACHE
     _CACHE = None
 
+
+def validate_not_empty(**kwargs):
+    for name, value in kwargs.iteritems():
+        if value is None or (isinstance(value, str) and len(value) == 0):
+            raise TypeError("%s cannot be None" % name)

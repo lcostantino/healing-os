@@ -50,6 +50,11 @@ plugin_opts = [
 ]
 db_opts = []
 
+engine_opts = [
+    cfg.StrOpt('statistics_class',
+               default="healing.engine.sla.statistics_ceilometer.CeilometerStatistics",
+               help="Statistics class"),
+]
 
 CONF = cfg.CONF
 
@@ -58,6 +63,7 @@ CONF.register_opts(pecan_opts, group='pecan')
 CONF.register_opts(auth_token.opts, group='keystone')
 CONF.register_opts(db_opts, group='database')
 CONF.register_opts(plugin_opts, group='plugins')
+CONF.register_opts(engine_opts, group='engine')
 
 CONF.import_opt('verbose', 'healing.openstack.common.log')
 CONF.import_opt('debug', 'healing.openstack.common.log')

@@ -309,10 +309,13 @@ def _alarm_track_get(alarm_track_id):
 
 
 def failure_track_get_all(start_date, end_date):
-    objs = model_query(m.FailureTrack).filter\
-                             ((m.FailureTrack.time >= start_date) &
-                             (m.FailureTrack.time <= end_date)).all()
-    return objs
+    query = model_query(m.FailureTrack)
+    if start_date:
+        query = query.filter(m.FailureTrack.time >= start_date)
+    if end_date:
+        query = query.filter(m.FailureTrack.time <= end_date)
+
+    return query.all()
 
 
 def failure_track_create(values):

@@ -30,11 +30,13 @@ from healing.engine.sla.manager import SLAAlarmingEngine
 from healing.engine.sla.statistics import SLAStatisticsEngine
 from healing.openstack.common import jsonutils
 from healing.openstack.common import log as logging
+from healing.objects.failure_track import FailureTrack as FailureTrackObj
 
 LOG = logging.getLogger(__name__)
 
 
 class SLAStatistics(resource.Resource):
+    type = wtypes.text
     value = wtypes.text
 
 class SLAContract(resource.Resource):
@@ -155,10 +157,17 @@ class SLATrackingController(rest.RestController):
     @wsme_pecan.wsexpose(FailureTracks)
     def get_all(self):
         failure_dicts = self.engine.track_failure_get_all()
-        failures = [FailureTrack.from_dict(obj) for obj in failure_dicts]
+
+        failures = []
+        if failure_dicts:
+            failures = [FailureTrack.from_dict(obj) for obj in failure_dicts]
 
         return FailureTracks(failures=failures)
 
+    @wsme_pecan.wsexpose(body=FailureTrack, status_code=201)
+    def post(self, failure):
+        fail = FailureTrackObj.from_dict(failure.to_dict())
+        fail.create()
 
 class SLAStatisticsController(rest.RestController):
 
@@ -186,9 +195,7 @@ class SLAStatisticsController(rest.RestController):
                                             end_date=end_date,
                                             resource_id=resource_id)
 
-        print('#####################################')
-        print(stat)
-        return SLAStatistics.from_dict(dict(value=str(stat)))
+        return SLAStatistics.from_dict(dict(type=stat_type, value=str(stat)))
 
 
 class SLAController(rest.RestController):

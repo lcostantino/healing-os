@@ -39,6 +39,13 @@ class Action(base.HealingPersistentObject, base.HealingObject):
         return action
 
     @classmethod
+    def from_dict(cls, values):
+        action = Action()
+        for key in values.keys():
+            action[key] = values[key]
+        return action
+
+    @classmethod
     def get_by_id(cls, action_id):
         db_action = db_api.action_get(action_id)
         return cls._from_db_object(cls(), db_action)
