@@ -13,10 +13,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import os
 import sys
 import eventlet
 
-from healing.rpc import rpc
 
 eventlet.monkey_patch(
     os=True,
@@ -25,8 +25,6 @@ eventlet.monkey_patch(
     thread=False if '--use-debugger' in sys.argv else True,
     time=True)
 
-import os
-
 POSSIBLE_TOPDIR = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
                                    os.pardir,
                                    os.pardir))
@@ -34,11 +32,13 @@ if os.path.exists(os.path.join(POSSIBLE_TOPDIR, 'healing', '__init__.py')):
     sys.path.insert(0, POSSIBLE_TOPDIR)
 
 #from oslo import messaging
+
 from oslo.config import cfg
 
 from healing import config
 from healing.api import app
 from healing import objects
+from healing.rpc import rpc
 from healing import service
 from wsgiref import simple_server
 from healing.openstack.common import log as logging

@@ -43,9 +43,8 @@ from healing.openstack.common import importutils
 from healing.openstack.common import log as logging
 from healing.openstack.common import systemd
 from healing.openstack.common import threadgroup
+from healing.rpc import rpc
 
-
-rpc = importutils.try_import('healing.openstack.common.rpc')
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
