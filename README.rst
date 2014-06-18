@@ -21,8 +21,27 @@ Features
 
 Execute
 ----------
-API)	4 python healing/cmd/launch.py -server action --config-file etc/healing.conf.example
-Action)	$ python healing/cmd/launch.py -server api --config-file etc/healing.conf.example
 
+ API)	4 python healing/cmd/launch.py --server api --config-file etc/healing.conf.example
+ Action)	$ python healing/cmd/launch.py --server action --config-file etc/healing.conf.example
+
+Develop Install
+---------------
+ $ python setup.py develop 
+ 
+ If you have issues check your setupttool version. 
+ Also try:
+   #apt-get remove python-setuptools  
+   #apt-get install python-setuptools        
+
+
+Description
+------------
+
+
+Notes
+-----------
+We used Mistral for API reference implementation as well taken the
+best of other components like Nova objects.
 
 
