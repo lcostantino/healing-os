@@ -57,6 +57,15 @@ plugin_config_file=plugins_config.yaml
 [action_executor]
 manager = healing.actionexecutor.manager.ActionManager
 topic = 'action_topic'
+notification_topic = 'info'
+workers = 2
+periodic_enable = False
+task_period = 60
+
+
+[action_tracker]
+manager = healing.tracker.manager.TrackerManager
+topic = 'tracker_topic'
 workers = 2
 periodic_enable = False
 task_period = 60

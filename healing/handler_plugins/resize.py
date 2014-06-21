@@ -14,7 +14,7 @@ class Resize(base.HandlerPluginBase):
     DESCRIPTION = "Resize to a bigger flavor"
     NAME = "resize"
 
-    def start(self, ctx, action):
+    def start(self, ctx, action, block=False):
         """ do something...  spawn thread?
             :param action ActionData Object
         """

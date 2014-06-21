@@ -25,12 +25,12 @@ from healing.openstack.common import jsonutils
 from healing.rpc import rpc
 
 CONF = config.CONF
-rpcapi_cap_opt = cfg.StrOpt('actionmanager',
+rpcapi_cap_opt = cfg.StrOpt('actiontracker',
         default='1.0',
         help='Set a version cap for messages sent to action services')
 CONF.register_opt(rpcapi_cap_opt, 'upgrade_levels')
 
-class ActionAPI(object):
+class TrackerAPI(object):
     '''Client side 
 
     API version history:
@@ -40,19 +40,15 @@ class ActionAPI(object):
     VERSION_ALIASES = {}
 
     def __init__(self):
-        super(ActionAPI, self).__init__()
-        target = messaging.Target(topic=CONF.action_executor.topic, version='1.0')
-        version_cap = self.VERSION_ALIASES.get(CONF.upgrade_levels.actionmanager,
-                                               CONF.upgrade_levels.actionmanager)
+        super(TrackerAPI, self).__init__()
+        target = messaging.Target(topic=CONF.action_tracker.topic, version='1.0')
+        version_cap = self.VERSION_ALIASES.get(CONF.upgrade_levels.actiontracker,
+                                               CONF.upgrade_levels.actiontracker)
         serializer = objects_base.HealingObjectSerializer()
         self.client = rpc.get_client(target, version_cap=version_cap,
                                      serializer=serializer)
 
-    def run_action(self, ctxt, actions, block=False):
+    def track_action(self, ctxt, track_action):
         cctxt = self.client.prepare()
-        cctxt.cast(ctxt, 'run_action', actions=actions, block=block)
-    
-    def run_action_and_wait(self, ctxt, actions, block=False):
-        cctxt = self.client.prepare()
-        cctxt.call(ctxt, 'run_action', actions=actions, block=block)
+        cctxt.cast(ctxt, 'track_action', track_action=track_action)
     

@@ -15,7 +15,7 @@ class Mistral(base.HandlerPluginBase):
     DESCRIPTION = "Run mistral workflow"
     NAME = "mistral"
 
-    def start(self, ctx, action):
+    def start(self, ctx, action, block=False):
         try:
             import mistralclient.api.client as client
             import mistralclient.api.executions as executions

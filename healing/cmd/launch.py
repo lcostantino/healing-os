@@ -56,6 +56,15 @@ def launch_action():
     service.serve(server, workers=config.CONF.action_executor.workers)
     service.wait()
 
+def launch_tracker():
+    objects.register_all()
+    server = service.Service.create(binary='healing-action_tracker', topic=cfg.CONF.action_tracker.topic,
+                                    manager=cfg.CONF.action_tracker.manager,
+                                    periodic_enable=cfg.CONF.action_tracker.periodic_enable,
+                                    periodic_interval_max=cfg.CONF.action_tracker.task_period)
+    service.serve(server, workers=config.CONF.action_tracker.workers)
+    service.wait()
+
     
 #from mistral
 def launch_api():
@@ -92,7 +101,8 @@ def create_db():
 LAUNCH_OPTIONS = {
     'api': launch_api,
     'db': create_db,
-    'action': launch_action
+    'action': launch_action,
+    'tracker': launch_tracker
 }
 
 

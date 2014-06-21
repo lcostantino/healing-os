@@ -59,6 +59,18 @@ action_executor_opts = [
     cfg.IntOpt('task_period', default=60),
     
 ]
+
+action_tracker_opts = [
+    cfg.StrOpt('manager',
+               default='tracker.manager.TrackerManager'),
+    cfg.StrOpt('topic',
+               default='tracker_topic'),
+    cfg.IntOpt('workers', default=2),
+    cfg.BoolOpt('periodic_enable', default=False),
+    cfg.IntOpt('task_period', default=60),
+    
+]
+
 action_opts = [
     cfg.StrOpt('host',
                help="Hostname"),
@@ -75,6 +87,7 @@ CONF.register_opts(auth_token.opts, group='keystone')
 CONF.register_opts(db_opts, group='database')
 CONF.register_opts(plugin_opts, group='plugins')
 CONF.register_opts(action_executor_opts, group='action_executor')
+CONF.register_opts(action_tracker_opts, group='action_tracker')
 CONF.register_opts(action_opts)
 CONF.register_cli_opts([cfg.StrOpt('server', default='api',
                         help='for launch.py')])

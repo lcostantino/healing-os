@@ -28,7 +28,7 @@ class HandlerPluginBase(object):
         return self._last_action
     
     @abc.abstractmethod
-    def start(self, ctx, action):
+    def start(self, ctx, action, block=False):
         """start action for ActionDataObj.
            :param ctx current Context
            :param action ActionData Object
@@ -44,6 +44,9 @@ class HandlerPluginBase(object):
         
     def finish(self, action, message):
         self.stop(action, action_obj.ACTION_FINISHED,  message)
+
+    def block_until_finish(self, action, ctx=None):
+        pass
     
     def stop(self, action, status, message=None):
         """stop action.."""

@@ -13,7 +13,7 @@ class Suspend(base.HandlerPluginBase):
     DESCRIPTION = "Suspend/Resume VM"
     NAME = "suspend"
 
-    def start(self, ctx, action):
+    def start(self, ctx, action, block=False):
         """ do something...  spawn thread?
             :param action ActionData Object
         """

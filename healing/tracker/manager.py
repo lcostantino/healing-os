@@ -24,9 +24,9 @@ from oslo import messaging
 
 
 from healing import exceptions
-from healing.handler_manager import get_plugin_handler as handler_manager
+from healing.tracker.handler_tracker import get_handler_tracker as tracker
 from healing import manager
-from healing.objects import action
+from healing.objects import tracker
 from healing.openstack.common import excutils
 from healing.openstack.common import importutils
 from healing.openstack.common import jsonutils
@@ -36,24 +36,17 @@ from healing.openstack.common import periodic_task
 
 
 LOG = logging.getLogger(__name__)
-from healing import utils
 
-class ActionManager(manager.Manager):
+class TrackerManager(manager.Manager):
     target = messaging.Target(version='1.0')
 
     def __init__(self, scheduler_driver=None, *args, **kwargs):
-        super(ActionManager, self).__init__(service_name='actionexecutor',
+        super(TrackerManager, self).__init__(service_name='actiontracker',
                                                *args, **kwargs)
-        handler_manager()
         
-    def run_action(self, context, actions, block=False):
         
-        if not type(actions) == list:
-            actions = [actions]
-        #if not context:
-        #    context = utils.build_context()
-        # remove, is for test
-        context = utils.build_context()
+    def track_action(self, context, track_action):
+        print "TRCK ction"
+        handler_tracker().add_track(track_action)
         
-        return handler_manager().start_plugins_group(context, actions, block=block)
         

@@ -4,16 +4,16 @@ from healing import exceptions
 from healing.openstack.common import log as logging
 from healing import utils
 
-
 LOG = logging.getLogger(__name__)
+
 
 class InstanceShow(base.HandlerPluginBase):
     """Output a nova show
     """
     DESCRIPTION = "Just output nova show for instance"
     NAME = "nova_show"
-
-    def start(self, ctx, action):
+    
+    def start(self, ctx, action, block=False):
         """ do something...  spawn thread?
             :param action ActionData Object
         """
@@ -29,9 +29,7 @@ class InstanceShow(base.HandlerPluginBase):
             LOG.exception(e)
             self.error(action, message=e.message)
             return None
-
-        self.finish(action, str(output))
-        return self.current_action.id
-
+        self.finish(action, output)
+            
     def can_execute(self, action, ctx=None):
         return super(InstanceShow, self).can_execute(action, ctx=ctx)
