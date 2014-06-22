@@ -30,13 +30,15 @@ logging.setup('Healing')
 rpc.init(config.CONF)
 
 ctx = context.Context('pepe')
-ACT_OPT = {"workflow":"SendMail", "task":"sendResultEmail", "params": {"admin_email": "root@localhost", "smtp_server": "localhost", "output": "salida"}}
+#ACT_OPT = {"workflow":"SendMail", "task":"sendResultEmail", "params": {"admin_email": "root@localhost", "smtp_server": "localhost", "output": "salida"}}
 
-act = action.Action.from_data(name='mistral',
+lis = []
+for x in range(0,1):
+    act = action.Action.from_data(name='evacuate',
                              status= 'pending', 
-                             target_resource='222', 
+                             target_resource='fa730e84-3c31-4902-8731-6ffe8a37026b',
                              request_id='2222-3333',
-                             data=ACT_OPT)
-act.create()
-            
-print "OUTPUT:" , rpcapi.ActionAPI().run_action(ctx, act)
+                             data=None)
+    act.create()
+    lis.append(act)        
+print "OUTPUT:" , rpcapi.ActionAPI().run_action(ctx, lis, block=True)

@@ -66,7 +66,7 @@ class Service(service.Service):
         self.periodic_fuzzy_delay = periodic_fuzzy_delay
         self.periodic_interval_max = periodic_interval_max
         self.saved_args, self.saved_kwargs = args, kwargs
-              
+
     def start(self):
         verstr = version.version_string()
         LOG.info(_('Starting %(topic)s node (version %(version)s)'),
@@ -75,7 +75,7 @@ class Service(service.Service):
         self.manager.init_host()
         self.model_disconnected = False
         LOG.debug(_("Creating RPC server for service %s") % self.topic)
-        
+
         target = messaging.Target(topic=self.topic, server=self.host)
 
         endpoints = [
@@ -143,7 +143,7 @@ class Service(service.Service):
 
     def kill(self):
         self.stop()
-       
+
     def stop(self):
         try:
             self.rpcserver.stop()
@@ -162,12 +162,45 @@ class Service(service.Service):
     def periodic_tasks(self, raise_on_error=False):
         """Tasks to be run at a periodic interval."""
         # ctxt has not adquired token yet...
+        print "PERIODIC: "
+        print "================="
         ctxt = utils.build_context(admin=True, authorize=False)
         return self.manager.periodic_tasks(ctxt, raise_on_error=raise_on_error)
 
     def basic_config_check(self):
         pass
 
+
+class NotificationService(Service):
+    def start(self):
+        verstr = version.version_string()
+        LOG.info(_('Starting %(topic)s node (version %(version)s)'),
+                  {'topic': self.topic, 'version': verstr})
+        self.basic_config_check()
+
+        #endpoints.extend(self.manager.additional_endpoints)
+        targets = []
+        endpoints = []
+        for x in self.topic:
+           targets.append(messaging.Target(topic=x))
+           endpoints.append(self.manager)
+
+        listener = messaging.get_notification_listener(rpc.TRANSPORT,
+                                                       targets,
+                                                       endpoints,
+                                                       allow_requeue=True)
+        if self.periodic_enable:
+            if self.periodic_fuzzy_delay:
+                initial_delay = random.randint(0, self.periodic_fuzzy_delay)
+            else:
+                initial_delay = None
+
+            self.tg.add_dynamic_timer(self.periodic_tasks,
+                                     initial_delay=initial_delay,
+                                     periodic_interval_max=
+                                     self.periodic_interval_max)
+
+        listener.start()
 
 
 def process_launcher():

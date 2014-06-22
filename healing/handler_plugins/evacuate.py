@@ -51,7 +51,7 @@ class Evacuate(base.HandlerPluginBase):
 
     def block_until_finish(self, action, ctx=None):
         """ Block the execution until the server is ACTIVE or ERROR. 
-            Only for POC...
+            Only for POC..., this block the thread..
         """
         for x in range(0,10):
             try:

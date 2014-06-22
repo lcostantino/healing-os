@@ -51,8 +51,13 @@ class ActionAPI(object):
     def run_action(self, ctxt, actions, block=False):
         cctxt = self.client.prepare()
         cctxt.cast(ctxt, 'run_action', actions=actions, block=block)
-    
+
     def run_action_and_wait(self, ctxt, actions, block=False):
         cctxt = self.client.prepare()
         cctxt.call(ctxt, 'run_action', actions=actions, block=block)
-    
+
+    def alarm(self, ctxt, alarm_id, source=None, contract_id=None,
+              resource_id=None):
+        cctxt = self.client.prepare()
+        cctxt.cast(ctxt, 'alarm', alarm_id=alarm_id, source=source,
+                   contract_id=contract_id, resource_id=resource_id)

@@ -14,6 +14,7 @@ class AlarmTrack(base.HealingPersistentObject, base.HealingObject):
               'alarm_id': fields.StringField(nullable=True),
               'contract_id': fields.StringField(nullable=False),
               'type': fields.StringField(),
+              # meter can be the notification name also
               'meter': fields.StringField(),
               # It's a string, because we may support other monitoring tools
               # that report status value
@@ -57,13 +58,14 @@ class AlarmTrack(base.HealingPersistentObject, base.HealingObject):
 
     @classmethod
     def get_by_id(cls, alarm_track_id):
+        """ Fetch by id or alarm_id."""
         db_alarm_track = db_api.alarm_track_get(alarm_track_id)
         return cls._from_db_object(cls(), db_alarm_track)
 
     @classmethod
     def get_by_alarm_id(cls, alarm_id):
         """ If single alarm, can contains multiples records.
-            we return the first one in that case
+            we return the first one in that case.
         """
         filters = {'alarm_id': alarm_id}
         obj = db_api.alarm_track_get_by_filter(filters)
@@ -71,9 +73,10 @@ class AlarmTrack(base.HealingPersistentObject, base.HealingObject):
 
     @classmethod
     def get_contracts_by_alarm_id(cls, alarm_id):
-        """ If single alarm, can contains multiples records."""
-        filters = {'alarm_id': alarm_id}
-        objs = db_api.alarm_tracks_get_all(filters)
+        """ If single alarm, can contains multiples records.
+            If alarm_id is NULL will check for AlarmTrack.id instead
+            """
+        objs = db_api.alarm_track_get(alarm_id, multiple_records=True)
         return [x['contract_id'] for x in objs]
 
     @classmethod
@@ -88,6 +91,15 @@ class AlarmTrack(base.HealingPersistentObject, base.HealingObject):
         filters = {'type': alarm_type}
         db_alarm_track = db_api.alarm_track_get_by_filter(filters)
         return cls._from_db_object(cls(), db_alarm_track)
+
+    @classmethod
+    def get_all_by_project_or_resource(cls, meter, project=None,
+                                       resource=None):
+        db_alarm_track = db_api.alarms_by_contract_resource_project(meter,
+                                                                    project,
+                                                                    resource)
+        return [cls._from_db_object(cls(), obj) for obj in db_alarm_track]
+
 
     def delete(self):
         if self.obj_attr_is_set('id'):

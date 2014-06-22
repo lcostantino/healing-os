@@ -87,8 +87,8 @@ def sla_contract_get_by_project(project):
     return IMPL.sla_contract_get_by_project(project)
 
 
-def sla_contract_get_by_id(id):
-    return IMPL.sla_contract_get_by_id(id)
+def sla_contract_get_by_id(alarm_id):
+    return IMPL.sla_contract_get_by_id(alarm_id)
 
 
 def sla_contract_update(sla_contract_id, values):
@@ -108,8 +108,8 @@ def sla_contract_get_all():
 
 
 #########3 ALARM track 3###############3
-def alarm_track_get(alarm_track_id):
-    return IMPL.alarm_track_get(alarm_track_id)
+def alarm_track_get(alarm_track_id, multiple_records=False):
+    return IMPL.alarm_track_get(alarm_track_id, multiple_records)
 
 
 def alarm_track_get_by_name_and_target(name, target, updated_time_gt=None,
@@ -141,6 +141,11 @@ def alarm_tracks_get_all(filters=None, order='created_at'):
     if not filters:
         filters = {}
     return IMPL.alarm_tracks_get_all(filters, order=order)
+
+
+def alarms_by_contract_resource_project(meter, project=None, resource=None):
+    return IMPL.alarms_by_contract_resource_project(meter, project=project,
+                                                    resource=resource)
 
 
 ###SLA_CONTRACT###

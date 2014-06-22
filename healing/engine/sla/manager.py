@@ -16,8 +16,6 @@
 
 from healing.openstack.common import jsonutils
 from healing.openstack.common import log as logging
-from healing.openstack.common import timeutils
-from healing.actionexecutor import rpcapi
 from healing import exceptions as exc
 from healing.handler_manager import get_plugin_handler as handler_manager
 from healing.engine.alarms import filters
@@ -42,14 +40,18 @@ SLA_TYPES = {'HOST_DOWN': {'alarm': cel_alarms.HostDownUniqueAlarm.ALARM_TYPE,
                           'override': True,
                           'options': None},
              'CEILOMETER_EXTERNAL_RESOURCE': {
-                          'alarm': cel_alarms.ExternalResourceAlarm.ALARM_TYPE,
-                          'override': True,
-                          'options': None},
+                        'alarm': cel_alarms.ExternalResourceAlarm.ALARM_TYPE,
+                        'override': True,
+                        'options': None},
              'GENERIC_SCRIPT_ALARM': {
                         'alarm': generic_alarms.ExternalScriptAlarm.ALARM_TYPE,
                         'override': True,
-                        'options': None}
-            }
+                        'options': None},
+             'NOTIFICATION_ALARM': {
+                        'alarm': generic_alarms.NotificationAlarm.ALARM_TYPE,
+                        'override': True,
+                        'options': None},
+        }
 
 
 def validate_contract_info(contract_dict, update=False):
@@ -73,11 +75,10 @@ def validate_contract_info(contract_dict, update=False):
         if contract_dict['action_options'] == '""':
             # TODO: fix this in horizon and client
             contract_dict['action_options'] = None
-            
-            
+
+
 class SLAContractEngine():
 
-    
     def _post_alarm_data(self, ctx, alarm, contract):
         """
         Some alarms retrieve information to fulfill the contract
@@ -94,7 +95,6 @@ class SLAContractEngine():
             contract.resource_id = extra.get('resource_id',
                                              contract.resource_id)
             contract.save()
-
 
     def create(self, ctx, contract_dict):
         validate_contract_info(contract_dict)
@@ -191,8 +191,7 @@ class SLAContractEngine():
 
 
 class SLAAlarmingEngine():
-    action_api = rpcapi.ActionAPI()
-    
+
     def _record_action(self, name, data, request_id, target_resource):
         try:
             act = Action.from_data(name=name,
@@ -204,53 +203,68 @@ class SLAAlarmingEngine():
         except Exception as e:
             LOG.exception(e)
         return None
-           
-    def _process_resource_alarm(self, ctx, alarm, contract, source):
-        """ Untested."""
+
+    def _process_resource_alarm(self, ctx, alarm, contract, source,
+                                resource_id=None):
+        """ For ceilometer it can be tenant based. For other alarms
+            if it's tenant based it must specify the resource_id in the
+            query"""
         contract = contract[0]
-        resources = [contract.resource_id]
+        resources = []
         project = contract.project_id
-        if not resources:
-            resources = [project]
-            
-        affected_contracts = [{'name': contract.name, 'id': contract.id}] 
-        failure_id = self._track_failure(alarm.alarm_id, resources, 
-                                         contract_names=affected_contracts)
-        if not contract.resource_id:
-            time_frame = (alarm.period * alarm.evaluation_period) #* 2
+        if resource_id:
+            resources = [resource_id]
+        elif contract.resource_id:
+            resources = [contrat.resource_id]
+
+        if (not resources and isinstance(alarm, cel_alarms.CeilometerAlarm)):
+            time_frame = (alarm.period * alarm.evaluation_period)
             resources = alarm.affected_resources(period=alarm.period,
                                     delta_seconds=time_frame,
                                     result_process=filters.FormatResources)
+        affected_contracts = [{'name': contract.name, 'id': contract.id}]
+        
+        id_alarm = alarm.alarm_id or alarm.alarm_track_id
+        failure_id = self._track_failure(id_alarm,
+                                         resources,
+                                         contract_names=affected_contracts)
         if not resources:
             LOG.warning('No resources found on ResourceAlarm %s'
                         % alarm.alarm_id)
             return ""
-
         actions = []
         for x in resources:
             record = self._record_action(name=contract.action,
                                          data=contract.action_options,
                                          request_id=failure_id,
                                          target_resource=x)
-        
+
             if record:
                 actions.append(record)
         if actions:
-            self.action_api.run_action(ctx ,actions)
+            handler_manager().start_plugins_group(ctx, actions)
 
         # WARN: we may want to change state alarm now if it's tenant
         # scoped, so it get repeated?
 
-    def _process_host_down_alarm(self, ctx, alarm, contracts, source):
+    def _process_host_down_alarm(self, ctx, alarm, contracts, source,
+                                 resource_id=None):
+        """Special alarm ceilometer based.
+           It can be triggered by external systems too if resource_id
+           is included in the query.
+        """
 
-        time_frame = (alarm.period * alarm.evaluation_period) #* 2
-        # we use the_process_host_down_alarm cache to avoid hosts processed in the last time
-        # can be dne with filter periods, but we may loose
-        # hosts that we failed to process for other reaons
-        resources = alarm.affected_resources(period=alarm.period,
-                            delta_seconds=time_frame,
-                            result_process=filters.FormatResources)
-
+        if not resource_id:
+            time_frame = (alarm.period * alarm.evaluation_period)
+            # we use the_process_host_down_alarm cache to avoid hosts
+            # processed in the last time
+            # can be dne with filter periods, but we may loose
+            # hosts that we failed to process for other reaons
+            resources = alarm.affected_resources(period=alarm.period,
+                                delta_seconds=time_frame,
+                                result_process=filters.FormatResources)
+        else:
+            resources = [resource_id]
         if resources:
             #penalize if already in cache
             resources = [x for x in resources if
@@ -262,7 +276,7 @@ class SLAAlarmingEngine():
                         'in time frame seconds: %s' % time_frame)
             return
         affected_contracts = [{'name': x.name, 'id': x.id} for x in contracts]
-        failure_id = self._track_failure(alarm.alarm_id, resources, 
+        failure_id = self._track_failure(alarm.alarm_id, resources,
                                          contract_names=affected_contracts)
         client = utils.get_nova_client(ctx)
         vms_by_tenant = {}
@@ -288,7 +302,7 @@ class SLAAlarmingEngine():
             else:
                 generic_contract = (x.action, x.action_options)
         actions = []
-        
+
         for prj, action in spec_contract_actions.iteritems():
             vms = [x for x in vms_by_tenant.get(prj, [])]
             for vm in vms:
@@ -298,7 +312,6 @@ class SLAAlarmingEngine():
                                              target_resource=vm['id'])
                 if record:
                     actions.append(record)
-                    
             vms_by_tenant.pop(prj, None)
         # may need refactor, need to process twice
         if generic_contract:
@@ -310,22 +323,22 @@ class SLAAlarmingEngine():
                                                  target_resource=vm['id'])
                     if record:
                         actions.append(record)
-                        
+
         for x in resources:
             utils.set_cache_value(x)
 
         if actions:
-            self.action_api.run_action(ctx ,actions)
-            
+            handler_manager().start_plugins_group(ctx, actions, block=True)
 
-    def alert(self, ctx, alarm_id, source, contract_id=None):
+    def alert(self, ctx, alarm_id, source=None, contract_id=None,
+              resource_id=None):
         if contract_id:
             alarm = alarm_manager.get_by_contract_id(ctx, contract_id)
             contract_ids = [contract_id]
         else:
-            alarm = alarm_manager.get_by_alarm_id(ctx, alarm_id)
+            alarm = alarm_manager.get_by_id(ctx, alarm_id)
             contract_ids = AlarmTrack.get_contracts_by_alarm_id(alarm_id)
-
+                
         contracts = []
         for x in contract_ids:
             try:
@@ -336,9 +349,11 @@ class SLAAlarmingEngine():
             raise exc.NotFoundException('No contracts or alarms found')
 
         if alarm.type == SLA_TYPES['HOST_DOWN']['alarm']:
-            return self._process_host_down_alarm(ctx, alarm, contracts, source)
+            return self._process_host_down_alarm(ctx, alarm, contracts, source,
+                                                 resource_id=resource_id)
         else:
-            return self._process_resource_alarm(ctx, alarm, contracts, source)
+            return self._process_resource_alarm(ctx, alarm, contracts, source,
+                                                resource_id=resource_id)
 
     def _track_failure(self, alarm_id, data, contract_names=None):
         failure = failure_track()

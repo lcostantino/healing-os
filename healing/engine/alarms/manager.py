@@ -38,6 +38,7 @@ def get_by_id(ctx, alarm_track_id, kwargs=None):
 
 
 def get_by_alarm_id(ctx, alarm_id, kwargs=None):
+    """ By alarm_id. Generic alarms have id==alarm_id"""
     obj = alarm_obj.AlarmTrack.get_by_alarm_id(alarm_id)
     cls = get_alarm_class_for_type(obj.type)
     return cls(ctx=ctx, alarm_object=obj, kwargs=kwargs)

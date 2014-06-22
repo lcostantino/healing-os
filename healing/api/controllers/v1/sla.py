@@ -21,7 +21,9 @@ import six
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
+
 from healing import utils
+from healing.actionexecutor import rpcapi as action_api
 from healing.api.controllers import resource
 from healing.api.controllers.v1 import action
 from healing.engine.sla.manager import SLAContractEngine
@@ -116,6 +118,7 @@ class SLAAlarmingController(rest.RestController):
 
     def __init__(self):
         self.engine = SLAAlarmingEngine()
+        self.action_api = action_api.ActionAPI()
 
     @pecan.expose()
     def post(self):
@@ -129,6 +132,7 @@ class SLAAlarmingController(rest.RestController):
         source = pecan.request.GET.get('source')
         status = pecan.request.GET.get('status')
         contract_id = pecan.request.GET.get('contract_id')
+        resource_id = pecan.request.GET.get('resource_id')
         body = six.moves.urllib_parse.unquote_plus(pecan.request.body)
         if body and body[-1] == '=':
             body = body[:-1]
@@ -139,8 +143,9 @@ class SLAAlarmingController(rest.RestController):
             abort(400, 'Status and Source are required')
         alarm = jsonutils.loads(body)
         if status == 'alarm':
-            self.engine.alert(ctx, alarm.get('alarm_id'), source=source,
-                              contract_id=contract_id)
+            self.action_api.alarm(ctx, alarm.get('alarm_id'), source=source,
+                              contract_id=contract_id,
+                              resource_id=resource_id)
         return ""
 
 

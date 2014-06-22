@@ -4,7 +4,8 @@
 class Context(object):
     def __init__(self, user='admin', password=None,
                  token=None, project='admin',
-                 user_id=None, roles=None, service_catalog=None):
+                 user_id=None, roles=None, service_catalog=None, 
+                 **kwargs):
         self.user = user
         self.password = password
         self.token = token

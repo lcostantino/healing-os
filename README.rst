@@ -45,3 +45,12 @@ We used Mistral for API reference implementation as well taken the
 best of other components like Nova objects.
 
 
+Blocking actions are something to refactor.
+Maybe an action status tracker tru the queue, to update them but
+having aother component, just for that seems overkill because
+not all actions may need to block. ( ex: check vm state after evacuate).
+Probably when task api is merged it will be easier to track this.
+
+TODO
+--------
+add resource type to contract (vm, network, etc)

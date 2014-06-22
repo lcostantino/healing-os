@@ -22,11 +22,12 @@ from oslo.config import cfg
 from healing import config
 from oslo import messaging
 
-
+from healing import context
 from healing import exceptions
 from healing.handler_manager import get_plugin_handler as handler_manager
 from healing import manager
 from healing.objects import action
+from healing.engine.sla.manager import SLAAlarmingEngine
 from healing.openstack.common import excutils
 from healing.openstack.common import importutils
 from healing.openstack.common import jsonutils
@@ -45,15 +46,23 @@ class ActionManager(manager.Manager):
         super(ActionManager, self).__init__(service_name='actionexecutor',
                                                *args, **kwargs)
         handler_manager()
-        
+        self.engine = SLAAlarmingEngine()
+
     def run_action(self, context, actions, block=False):
-        
         if not type(actions) == list:
             actions = [actions]
         #if not context:
         #    context = utils.build_context()
         # remove, is for test
         context = utils.build_context()
-        
-        return handler_manager().start_plugins_group(context, actions, block=block)
-        
+        return handler_manager().start_plugins_group(context, actions,
+                                                     block=block)
+
+    def alarm(self, ctxt, alarm_id, source=None, contract_id=None, resource_id=None):
+        # TODO: check why token is not there, from notification my be ok , but 
+        # from API is still the same?
+        if ctxt.token is None:
+            ctxt = utils.build_context()
+        self.engine.alert(ctxt, alarm_id, source, contract_id=contract_id, 
+                          resource_id=resource_id)
+

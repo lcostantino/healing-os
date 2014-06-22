@@ -65,7 +65,7 @@ task_period = 60
 
 [action_tracker]
 manager = healing.tracker.manager.TrackerManager
-topic = 'tracker_topic'
-workers = 2
-periodic_enable = False
+topics = notifications
+workers = 1
+periodic_enable = True
 task_period = 60

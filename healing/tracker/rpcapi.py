@@ -48,7 +48,4 @@ class TrackerAPI(object):
         self.client = rpc.get_client(target, version_cap=version_cap,
                                      serializer=serializer)
 
-    def track_action(self, ctxt, track_action):
-        cctxt = self.client.prepare()
-        cctxt.cast(ctxt, 'track_action', track_action=track_action)
     

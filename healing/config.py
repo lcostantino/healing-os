@@ -63,8 +63,8 @@ action_executor_opts = [
 action_tracker_opts = [
     cfg.StrOpt('manager',
                default='tracker.manager.TrackerManager'),
-    cfg.StrOpt('topic',
-               default='tracker_topic'),
+    cfg.ListOpt('topics',
+               default=['warn', 'info', 'error']),
     cfg.IntOpt('workers', default=2),
     cfg.BoolOpt('periodic_enable', default=False),
     cfg.IntOpt('task_period', default=60),

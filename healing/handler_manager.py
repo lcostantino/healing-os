@@ -103,23 +103,22 @@ class HandlerManager(object):
                     run_plugins.append((plug, x))
             except exceptions.CannotStartPlugin:
                 pass
-                        
         for plug_obj,data in run_plugins:
             # encapsulate in heat task ( why?... maybe it's usefull later)
             # but, anyways, clients are not ready for yield ops so...
             #this may block if check_for_status, we planned to have this check
             #in another service async, but.
             #runner.append(task)
-                            
-            # we could launch the tasks, and do a check_if_finished at the end, 
+            # we could launch the tasks, and do a check_if_finished at the end,
             # but if you need a task after the another it will break...
             # The thread will block until the action finish if it's blocking,
             # so it may impact the operation time on each sleep.
             # for poc is ok, but ....
-            task = scheduler.TaskRunner(plug_obj.start, ctx=ctx, action=data, 
+            # Also, now that we have a notification listener, it could be used
+            # to track action states and report real progress without blocking
+            task = scheduler.TaskRunner(plug_obj.start, ctx=ctx, action=data,
                                         block=block)
             self.thread_pool.add_thread(task.start)
-        
         self.thread_pool.wait()
         return len(run_plugins)
 
