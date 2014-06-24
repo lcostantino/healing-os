@@ -14,5 +14,5 @@ python-subunit>=0.0.18
 testrepository>=0.0.18
 hacking>=0.8.0,<0.9
 coverage>=3.6
-
+oslotest
 
