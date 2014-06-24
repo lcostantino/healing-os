@@ -58,11 +58,12 @@ class ActionManager(manager.Manager):
         return handler_manager().start_plugins_group(context, actions,
                                                      block=block)
 
-    def alarm(self, ctxt, alarm_id, source=None, contract_id=None, resource_id=None):
+    def alarm(self, ctxt, alarm_id, source=None, contract_id=None, resource_id=None,
+              project_id=None):
         # TODO: check why token is not there, from notification my be ok , but 
         # from API is still the same?
         if ctxt.token is None:
             ctxt = utils.build_context()
         self.engine.alert(ctxt, alarm_id, source, contract_id=contract_id, 
-                          resource_id=resource_id)
+                          resource_id=resource_id, project_id=project_id)
 

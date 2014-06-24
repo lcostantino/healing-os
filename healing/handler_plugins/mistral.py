@@ -40,6 +40,9 @@ class Mistral(base.HandlerPluginBase):
             params['output'] = '[%s]' % action.target_id
 
         params['request_id'] = action.request_id
+        params['instance_id'] = action.target_id
+        params['project'] = action.project_id 
+        
         if not workflow or not task:
             LOG.warning('required parameters missing for mistral')
             self.stop(action, error=True)

@@ -332,6 +332,8 @@ def alarms_by_contract_resource_project(meter, project=None, resource=None):
     obj = query.join(contract_q, m.AlarmTrack.contract_id==contract_q.c.id)
     obj = obj.order_by(desc(contract_q.c.resource_id))
     obj = obj.order_by(desc(contract_q.c.project_id)).all()
+    
+    
     if not obj:
         raise exc.NotFoundException()
     return obj

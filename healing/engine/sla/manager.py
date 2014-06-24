@@ -198,12 +198,13 @@ class SLAContractEngine():
 
 class SLAAlarmingEngine():
 
-    def _record_action(self, name, data, request_id, target_resource):
+    def _record_action(self, name, data, request_id, target_resource, project_id=None):
         try:
             act = Action.from_data(name=name,
                                    data=data,
                                    request_id=request_id,
-                                   target_resource=target_resource)
+                                   target_resource=target_resource,
+                                   project_id=project_id)
             act.create()
             return act
         except Exception as e:
@@ -211,13 +212,13 @@ class SLAAlarmingEngine():
         return None
 
     def _process_resource_alarm(self, ctx, alarm, contract, source,
-                                resource_id=None):
+                                resource_id=None, project_id=None):
         """ For ceilometer it can be tenant based. For other alarms
             if it's tenant based it must specify the resource_id in the
             query"""
         contract = contract[0]
         resources = []
-        project = contract.project_id
+        project = contract.project_id or project_id # for notification alarms.
         if resource_id:
             resources = [resource_id]
         elif contract.resource_id:
@@ -242,6 +243,7 @@ class SLAAlarmingEngine():
         for x in resources:
             record = self._record_action(name=contract.action,
                                          data=contract.action_options,
+                                         project_id=project,
                                          request_id=failure_id,
                                          target_resource=x)
 
@@ -419,7 +421,7 @@ class SLAAlarmingEngine():
             handler_manager().start_plugins_group(ctx, actions, block=True)
 
     def alert(self, ctx, alarm_id, source=None, contract_id=None,
-              resource_id=None):
+              resource_id=None, project_id=None):
         if contract_id:
             alarm = alarm_manager.get_by_contract_id(ctx, contract_id)
             contract_ids = [contract_id]
@@ -444,7 +446,8 @@ class SLAAlarmingEngine():
                                                 resource_id=resource_id)
         else:
             return self._process_resource_alarm(ctx, alarm, contracts, source,
-                                                resource_id=resource_id)
+                                                resource_id=resource_id,
+                                                project_id=project_id)
 
     def _track_failure(self, alarm_id, data, contract_names=None):
         failure = failure_track()
