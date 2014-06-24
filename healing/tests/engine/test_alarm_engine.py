@@ -121,9 +121,9 @@ class TestCeilometerAlarm(base.TestCase):
         am.set_default_alarm_hook()
         am.set_default_ok_hook()
         am.set_default_insufficient_hook()
-        self.assertEquals(url + '?status=alarm&source=ceilometer', am.hooks[alarm_base.ALARM_HOOK])
-        self.assertEquals(url + '?status=ok&source=ceilometer', am.hooks[alarm_base.OK_HOOK])
-        self.assertEquals(url + '?status=insufficient&source=ceilometer', am.hooks[alarm_base.INSUFFICIENT_HOOK])
+        self.assertEquals([url + '?status=alarm&source=ceilometer'], am.hooks[alarm_base.ALARM_HOOK])
+        self.assertEquals([url + '?status=ok&source=ceilometer'], am.hooks[alarm_base.OK_HOOK])
+        self.assertEquals([url + '?status=insufficient&source=ceilometer'], am.hooks[alarm_base.INSUFFICIENT_HOOK])
         
         expected = {'period': data['period'], 
                     'name': am.alarm_track.id,
@@ -262,7 +262,6 @@ class TestResourceAlarm(base.TestCase):
         am.alarm_track = fake_alarm_object(**data)
         am.create()
         self.assertEquals('resource_id', am.query[0]['field'])
-        self.assertEquals('project_id', am.query[1]['field'])
         self.assertTrue(parent_create_mock.called)
         
     """    

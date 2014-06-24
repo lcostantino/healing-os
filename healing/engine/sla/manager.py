@@ -36,6 +36,12 @@ SLA_TYPES = {'HOST_DOWN': {'alarm': cel_alarms.HostDownUniqueAlarm.ALARM_TYPE,
                                        'threshold': 1,
                                        'repeat': True},
                            'override': False},
+             'VM_ERROR':  {'alarm': cel_alarms.VmErrorUniqueAlarm.ALARM_TYPE,
+                           'options': {'meter': 'services.vm.error',
+                                       'operator': 'eq',
+                                       'threshold': 1,
+                                       'repeat': True},
+                           'override': False},
              'RESOURCE': {'alarm': cel_alarms.ResourceAlarm.ALARM_TYPE,
                           'override': True,
                           'options': None},
@@ -216,7 +222,7 @@ class SLAAlarmingEngine():
         if resource_id:
             resources = [resource_id]
         elif contract.resource_id:
-            resources = [contrat.resource_id]
+            resources = [contract.resource_id]
 
         if (not resources and isinstance(alarm, cel_alarms.CeilometerAlarm)):
             time_frame = (alarm.period * alarm.evaluation_period)
@@ -248,6 +254,10 @@ class SLAAlarmingEngine():
 
         # WARN: we may want to change state alarm now if it's tenant
         # scoped, so it get repeated?
+
+    def _process_vm_error_alarm(self, ctx, alarm, contracts, source,
+                                 resource_id=None):
+        LOG.warning('process VM_ERROR not implemented')
 
     def _process_host_down_alarm(self, ctx, alarm, contracts, source,
                                  resource_id=None):
@@ -353,6 +363,9 @@ class SLAAlarmingEngine():
         if alarm.type == SLA_TYPES['HOST_DOWN']['alarm']:
             return self._process_host_down_alarm(ctx, alarm, contracts, source,
                                                  resource_id=resource_id)
+        elif alarm.type == SLA_TYPES['VM_ERROR']['alarm']:
+            return self._process_vm_error_alarm(ctx, alarm, contracts, source,
+                                                resource_id=resource_id)
         else:
             return self._process_resource_alarm(ctx, alarm, contracts, source,
                                                 resource_id=resource_id,
