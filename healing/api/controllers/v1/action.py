@@ -15,6 +15,7 @@
 #    limitations under the License.
 
 import pecan
+from pecan import abort
 from pecan import rest
 import wsmeext.pecan as wsme_pecan
 from wsme import types as wtypes
@@ -62,3 +63,14 @@ class ActionsController(rest.RestController):
 
         actions =  [ActionResource.from_obj(x) for x in ret]
         return ActionList(actions=actions)
+
+    @wsme_pecan.wsexpose(body=ActionResource, status_code=201)
+    def post(self, act):
+        if ActionResource.name and \
+           ActionResource.request_id and \
+           ActionResource.target_id and \
+           ActionResource.status:
+            action_obj = action.Action.from_dict(act.to_dict())
+            action_obj.create()
+        else:
+            abort(400, 'Name, request_id and target_id are required')

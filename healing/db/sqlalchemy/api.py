@@ -341,8 +341,13 @@ def alarms_by_contract_resource_project(meter, project=None, resource=None):
 ########################
 
 
-def failure_track_get_all():
+def failure_track_get_all(start_date, end_date):
     query = model_query(m.FailureTrack)
+    if start_date:
+        query = query.filter(m.FailureTrack.created_at >= start_date)
+    if end_date:
+        query = query.filter(m.FailureTrack.created_at <= end_date)
+
     return query.all()
 
 

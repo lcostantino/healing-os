@@ -459,6 +459,12 @@ class SLAAlarmingEngine():
         return failure.id
 
     @classmethod
-    def track_failure_get_all(cls):
-        failures = [failure.to_dict() for failure in failure_track.get_all()]
+    def track_failure_get_all(cls, start_date=None, end_date=None):
+        failures = [failure.to_dict() for failure in
+                    failure_track.get_all(start_date, end_date)]
         return failures
+
+    def track_failure_create(self, ctx, track_failure_dict):
+        self._track_failure(track_failure_dict['created_at'],
+                            track_failure_dict['alarm_id'],
+                            track_failure_dict['data'])

@@ -27,18 +27,23 @@ class FailureTrack(base.HealingPersistentObject, base.HealingObject):
             values[key] = self[key]
         return values
 
+    @classmethod
     def from_dict(self, values):
+        failure = FailureTrack()
         for key in values.keys():
-            self[key] = values[key]
+            failure[key] = values[key]
+        return failure
 
     @classmethod
-    def get_all(cls):
-        db_failure_tracks = db_api.failure_track_get_all()
+    def get_all(cls, start_date=None, end_date=None):
+
+        filters = {}
+
+        db_failure_tracks = db_api.failure_track_get_all(start_date, end_date)
 
         failure_tracks = []
         for db_failure_track in db_failure_tracks:
             failure_tracks.append(cls._from_db_object(cls(), db_failure_track))
-
         return failure_tracks
 
     def create(self):
