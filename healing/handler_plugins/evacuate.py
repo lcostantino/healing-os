@@ -52,6 +52,9 @@ class Evacuate(base.HandlerPluginBase):
     def block_until_finish(self, action, ctx=None):
         """ Block the execution until the server is ACTIVE or ERROR. 
             Only for POC..., this block the thread..
+            Ideally we can ask for instance action based on the 
+            request_id but it's not returned by novaclient.... BP?
+            Another option is to wait for the notification.
         """
         for x in range(0,10):
             try:
