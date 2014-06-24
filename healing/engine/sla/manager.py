@@ -255,12 +255,7 @@ class SLAAlarmingEngine():
         # WARN: we may want to change state alarm now if it's tenant
         # scoped, so it get repeated?
 
-    def _process_vm_error_alarm(self, ctx, alarm, contracts, source,
-                                 resource_id=None):
-        """Special alarm ceilometer based.
-           It can be triggered by external systems too if resource_id
-           is included in the query.
-        """
+    def _get_alarm_resources(self, alarm, resource_id):
         if not resource_id:
             time_frame = (alarm.period * alarm.evaluation_period)
             # we use the_process_host_down_alarm cache to avoid hosts
@@ -268,8 +263,9 @@ class SLAAlarmingEngine():
             # can be dne with filter periods, but we may loose
             # hosts that we failed to process for other reaons
             resources = alarm.affected_resources(period=alarm.period,
-                                delta_seconds=time_frame,
-                                result_process=filters.FormatResources)
+                                                 delta_seconds=time_frame,
+                                                 result_process=filters
+                                                 .FormatResources)
         else:
             resources = [resource_id]
         if resources:
@@ -277,11 +273,56 @@ class SLAAlarmingEngine():
             resources = [x for x in resources if
                          not utils.get_cache_value(x, penalize=True)]
             LOG.debug('Resources after cache check %s' % str(resources))
-        #resources = ['ubuntu-SVT13125CLS']
+            #resources = ['ubuntu-SVT13125CLS']
         if not resources:
             LOG.warning('no affected resources associated to the alarm '
                         'in time frame seconds: %s' % time_frame)
+        return resources
+
+    def _get_actions_for_contracts(self, failure_id, vms_by_tenant, contracts):
+        # specific contracts
+        # TODO: ActionData should be sent tr rpc and workers splitted
+        spec_contract_actions = {}
+        generic_contract = False
+        for x in contracts:
+            if x.project_id:
+                spec_contract_actions[x.project_id] = (x.action,
+                                                       x.action_options)
+            else:
+                generic_contract = (x.action, x.action_options)
+        actions = []
+        for prj, action in spec_contract_actions.iteritems():
+            vms = [x for x in vms_by_tenant.get(prj, [])]
+            for vm in vms:
+                record = self._record_action(name=action[0],
+                                             data=action[1],
+                                             request_id=failure_id,
+                                             target_resource=vm['id'])
+                if record:
+                    actions.append(record)
+            vms_by_tenant.pop(prj, None)
+            # may need refactor, need to process twice
+        if generic_contract:
+            for prj, vms in vms_by_tenant.iteritems():
+                for vm in vms:
+                    record = self._record_action(name=generic_contract[0],
+                                                 data=generic_contract[1],
+                                                 request_id=failure_id,
+                                                 target_resource=vm['id'])
+                    if record:
+                        actions.append(record)
+        return actions
+
+    def _process_vm_error_alarm(self, ctx, alarm, contracts, source,
+                                 resource_id=None):
+        """Special alarm ceilometer based.
+           It can be triggered by external systems too if resource_id
+           is included in the query.
+        """
+        resources = self._get_alarm_resources(alarm, resource_id)
+        if not resources:
             return
+
         affected_contracts = [{'name': x.name, 'id': x.id} for x in contracts]
 
         failure_id = self._track_failure(alarm.alarm_id, resources,
@@ -296,39 +337,8 @@ class SLAAlarmingEngine():
             LOG.exception(e)
             return
 
-        # specific contracts
-        # TODO: ActionData should be sent tr rpc and workers splitted
-
-        spec_contract_actions = {}
-        generic_contract = False
-        for x in contracts:
-            if x.project_id:
-                spec_contract_actions[x.project_id] = (x.action,
-                                                       x.action_options)
-            else:
-                generic_contract = (x.action, x.action_options)
-        actions = []
-
-        for prj, action in spec_contract_actions.iteritems():
-            vms = [x for x in vms_by_tenant.get(prj, [])]
-            for vm in vms:
-                record = self._record_action(name=action[0],
-                                             data=action[1],
-                                             request_id=failure_id,
-                                             target_resource=vm['id'])
-                if record:
-                    actions.append(record)
-            vms_by_tenant.pop(prj, None)
-        # may need refactor, need to process twice
-        if generic_contract:
-            for prj, vms in vms_by_tenant.iteritems():
-                for vm in vms:
-                    record = self._record_action(name=generic_contract[0],
-                                                 data=generic_contract[1],
-                                                 request_id=failure_id,
-                                                 target_resource=vm['id'])
-                    if record:
-                        actions.append(record)
+        actions = self._get_actions_for_contracts(failure_id, vms_by_tenant,
+                                                  contracts)
 
         for x in resources:
             utils.set_cache_value(x)
@@ -342,31 +352,15 @@ class SLAAlarmingEngine():
            It can be triggered by external systems too if resource_id
            is included in the query.
         """
-
-        if not resource_id:
-            time_frame = (alarm.period * alarm.evaluation_period)
-            # we use the_process_host_down_alarm cache to avoid hosts
-            # processed in the last time
-            # can be dne with filter periods, but we may loose
-            # hosts that we failed to process for other reaons
-            resources = alarm.affected_resources(period=alarm.period,
-                                delta_seconds=time_frame,
-                                result_process=filters.FormatResources)
-        else:
-            resources = [resource_id]
-        if resources:
-            #penalize if already in cache
-            resources = [x for x in resources if
-                         not utils.get_cache_value(x, penalize=True)]
-            LOG.debug('Resources after cache check %s' % str(resources))
-        #resources = ['ubuntu-SVT13125CLS']
+        resources = self._get_alarm_resources(alarm, resource_id)
         if not resources:
-            LOG.warning('no affected resources associated to the alarm '
-                        'in time frame seconds: %s' % time_frame)
             return
+
         affected_contracts = [{'name': x.name, 'id': x.id} for x in contracts]
         failure_id = self._track_failure(alarm.alarm_id, resources,
                                          contract_names=affected_contracts)
+
+
         client = utils.get_nova_client(ctx)
         vms_by_tenant = {}
         # WARN; if fails and filtered by statistics we may never act
@@ -379,39 +373,8 @@ class SLAAlarmingEngine():
                 LOG.exception(e)
                 continue
 
-        # specific contracts
-        # TODO: ActionData should be sent tr rpc and workers splitted
-
-        spec_contract_actions = {}
-        generic_contract = False
-        for x in contracts:
-            if x.project_id:
-                spec_contract_actions[x.project_id] = (x.action,
-                                                       x.action_options)
-            else:
-                generic_contract = (x.action, x.action_options)
-        actions = []
-
-        for prj, action in spec_contract_actions.iteritems():
-            vms = [x for x in vms_by_tenant.get(prj, [])]
-            for vm in vms:
-                record = self._record_action(name=action[0],
-                                             data=action[1],
-                                             request_id=failure_id,
-                                             target_resource=vm['id'])
-                if record:
-                    actions.append(record)
-            vms_by_tenant.pop(prj, None)
-        # may need refactor, need to process twice
-        if generic_contract:
-            for prj, vms in vms_by_tenant.iteritems():
-                for vm in vms:
-                    record = self._record_action(name=generic_contract[0],
-                                                 data=generic_contract[1],
-                                                 request_id=failure_id,
-                                                 target_resource=vm['id'])
-                    if record:
-                        actions.append(record)
+        actions = self._get_actions_for_contracts(failure_id, vms_by_tenant,
+                                                  contracts)
 
         for x in resources:
             utils.set_cache_value(x)
