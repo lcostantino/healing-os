@@ -55,7 +55,10 @@ class SLAStatisticsEngine():
             period = self.stats.get_resource_period(resource_id, start_date,
                                                     end_date)
 
-            return unavailable_time * 100 / period
+            if period == 0:
+                raise Exception('Not valid period detected')
+            else:
+                return unavailable_time * 100 / period
         else:
             utils.validate_not_empty(project_id=project_id)
 
@@ -69,9 +72,10 @@ class SLAStatisticsEngine():
                 total_period += self.stats.get_resource_period(vm,start_date,
                                                                end_date)
 
-            print('#####unavailable_time: %s' % str(total_unavailable_time))
-            print('#####period: %s' % str(total_period))
-            return total_unavailable_time * 100 / total_period
+            if total_period == 0:
+                raise Exception('Not valid period detected')
+            else:
+                return total_unavailable_time * 100 / total_period
 
     #TODO: Just consider the machines with cpu > 0 before the failure
     def _resource_unavailability(self, resource_id, alarms, actions, to_date):

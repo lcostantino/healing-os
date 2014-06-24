@@ -170,10 +170,11 @@ class SLATrackingController(rest.RestController):
             failures = [FailureTrack.from_dict(obj) for obj in failure_dicts]
         return FailureTracks(failures=failures)
 
-    @wsme_pecan.wsexpose(body=FailureTrack, status_code=201)
+    @wsme_pecan.wsexpose(FailureTrack, body=FailureTrack, status_code=201)
     def post(self, failure):
         fail = FailureTrackObj.from_dict(failure.to_dict())
         fail.create()
+        return FailureTrack.from_dict(fail.to_dict())
 
 class SLAStatisticsController(rest.RestController):
 

@@ -92,7 +92,8 @@ class CeilometerStatistics():
     def get_vms_per_project(self, project_id):
         vms = []
         for stat in self.instance_stats:
-            if stat.groupby['project_id'] == project_id:
-                vms.append(stat.groupby['resource_id'])
+            vm = stat.groupby['resource_id']
+            if stat.groupby['project_id'] == project_id and vm not in vms:
+                vms.append(vm)
 
         return vms
