@@ -72,15 +72,20 @@ class TrackerManager(manager.Manager):
         project_id = payload.get('tenant_id')
         resource_id = payload.get('instance_id')
         # check if there's another id instead of instance_id
-        alarms = alarm_track.AlarmTrack.get_all_by_project_or_resource(
-                event_type,
-                project=project_id,
-                resource=resource_id)
-        if alarms:
-            best_match = alarms[0]
-            self.action_api.alarm(ctxt, alarm_id=best_match.id, source='notifier',
-                                  resource_id=resource_id)
-
+        try:
+            alarms = alarm_track.AlarmTrack.get_all_by_project_or_resource(
+                                                           event_type,
+                                                           project=project_id,
+                                                           resource=resource_id)
+            if alarms:
+                best_match = alarms[0]
+                # project_id because it can be a non-tenant based alarm
+                self.action_api.alarm(ctxt, alarm_id=best_match.id, source='notifier',
+                                      resource_id=resource_id, 
+                                      project_id=project_id)
+        except Exception as exc:
+            LOG.exception(exc)
+            
     @periodic_task.periodic_task(run_immediately=True)
     def update_notification_alarms(self, ctx):
         # Update the list of event_types we are interesed in
