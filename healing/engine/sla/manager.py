@@ -309,7 +309,6 @@ class SLAAlarmingEngine():
                 generic_contract = (x.action, x.action_options)
         actions = []
 
-        import ipdb; ipdb.set_trace()
         for prj, action in spec_contract_actions.iteritems():
             vms = [x for x in vms_by_tenant.get(prj, [])]
             for vm in vms:
