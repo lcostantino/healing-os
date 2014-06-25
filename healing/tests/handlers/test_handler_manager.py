@@ -42,7 +42,7 @@ class FakeRestriction2(restr_base.RestrictionBase):
 class FakePlugin(base_plugin.HandlerPluginBase):
     NAME = 'fake'
 
-    def start(self, ctx, data):
+    def start(self, ctx, action, block=False):
         pass
 
     def stop(self, ctx, error=False):
@@ -52,7 +52,7 @@ class FakePlugin(base_plugin.HandlerPluginBase):
 class FakePlugin2(base_plugin.HandlerPluginBase):
     NAME = 'fake2'
 
-    def start(self, ctx, data):
+    def start(self, ctx, action, block=False):
         pass
 
     def stop(self, ctx, error=False):
