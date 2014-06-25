@@ -7,9 +7,10 @@
 ##################
 
 keystone_url=http://127.0.0.1:5000/v2.0/
-
 export OS_AUTH_URL=$keystone_url
 
+project_id=$(keystone tenant-get $OS_TENANT_NAME | grep '|.*id.*|' | awk '{ print $ 4 }')
+nova quota-update --instances -1 --cores -1 --ram -1 $project_id
 
 ##################
 #Generating vms
@@ -147,10 +148,8 @@ name4=name$RANDOM
 name5=name$RANDOM
 status=evacuate
 
-healing sla-tracking-create -created_at $first_host_down_date -alarm_id $alarm_id1
-id1=$(healing sla-tracking-list | grep -m 2 '| .* |' | grep -o $uuid_pattern | awk '{ print $1 }' | grep -m 1 '.*')
-healing sla-tracking-create -created_at $second_host_down_date -alarm_id $alarm_id2
-id2=$(healing sla-tracking-list | grep -m 2 '| .* |' | grep -o $uuid_pattern | awk '{ print $1 }' | grep -m 1 '.*')
+id1=$(healing sla-tracking-create -created_at $first_host_down_date -alarm_id $alarm_id1 | grep '| ID' | grep -o $uuid_pattern)
+id2=$(healing sla-tracking-create -created_at $second_host_down_date -alarm_id $alarm_id2 | grep '| ID' | grep -o $uuid_pattern)
 
 healing sla-actions-create -name $name1 -target_id $vm1_id -request_id $id1 -status $status
 healing sla-actions-create -name $name2 -target_id $vm2_id -request_id $id1 -status $status
