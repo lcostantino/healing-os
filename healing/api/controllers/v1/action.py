@@ -64,7 +64,7 @@ class ActionsController(rest.RestController):
         actions =  [ActionResource.from_obj(x) for x in ret]
         return ActionList(actions=actions)
 
-    @wsme_pecan.wsexpose(body=ActionResource, status_code=201)
+    @wsme_pecan.wsexpose(ActionResource, body=ActionResource, status_code=201)
     def post(self, act):
         if ActionResource.name and \
            ActionResource.request_id and \
@@ -72,5 +72,6 @@ class ActionsController(rest.RestController):
            ActionResource.status:
             action_obj = action.Action.from_dict(act.to_dict())
             action_obj.create()
+            return ActionResource.from_obj(action_obj)
         else:
             abort(400, 'Name, request_id and target_id are required')
