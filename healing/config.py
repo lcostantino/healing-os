@@ -25,6 +25,7 @@ from healing.openstack.common import log
 from healing.openstack.common import memorycache
 from healing import version
 
+
 api_opts = [
     cfg.StrOpt('host', default='0.0.0.0', help='Healing API server host'),
     cfg.BoolOpt('use_cherrypy', default=False, help='Start a cherrypy wsgi server'),
@@ -33,7 +34,6 @@ api_opts = [
     cfg.ListOpt('unauthorized_urls', default=[], help=
                 'Do not check keystone token for urls'),
 ]
-
 
 pecan_opts = [
     cfg.StrOpt('root', default='healing.api.controllers.root.RootController',
@@ -48,6 +48,34 @@ plugin_opts = [
                default="plugins_config.yaml",
                help="plugins config file."),
 ]
+
+action_executor_opts = [
+    cfg.StrOpt('manager',
+               default='actionexecutor.manager.ActionManager'),
+    cfg.StrOpt('topic',
+               default='action_topic'),
+    cfg.IntOpt('workers', default=2),
+    cfg.BoolOpt('periodic_enable', default=False),
+    cfg.IntOpt('task_period', default=60),
+    
+]
+
+action_tracker_opts = [
+    cfg.StrOpt('manager',
+               default='tracker.manager.TrackerManager'),
+    cfg.ListOpt('topics',
+               default=['warn', 'info', 'error']),
+    cfg.IntOpt('workers', default=2),
+    cfg.BoolOpt('periodic_enable', default=False),
+    cfg.IntOpt('task_period', default=60),
+    
+]
+
+action_opts = [
+    cfg.StrOpt('host',
+               help="Hostname"),
+]
+
 db_opts = []
 
 engine_opts = [
@@ -63,6 +91,11 @@ CONF.register_opts(pecan_opts, group='pecan')
 CONF.register_opts(auth_token.opts, group='keystone')
 CONF.register_opts(db_opts, group='database')
 CONF.register_opts(plugin_opts, group='plugins')
+CONF.register_opts(action_executor_opts, group='action_executor')
+CONF.register_opts(action_tracker_opts, group='action_tracker')
+CONF.register_opts(action_opts)
+CONF.register_cli_opts([cfg.StrOpt('server', default='api',
+                        help='for launch.py')])
 CONF.register_opts(engine_opts, group='engine')
 
 CONF.import_opt('verbose', 'healing.openstack.common.log')

@@ -1,30 +1,27 @@
 [DEFAULT]
 # Show more verbose log output (sets INFO log level output)
 verbose = True
-
+host = "pepe"
 #
 
 debug = True
-
 # Log to this file
 log_file = /tmp/healing.log
 
 # Log levels for specific modules
-default_log_levels = mistral=DEBUG,mistral.api=DEBUG,wsme=DEBUG
+default_log_levels = healing=DEBUG,healing.api=DEBUG,wsme=DEBUG,amqplib=DEBUG
+
 
 # Rabbit config for oslo.messaging
 rabbit_host = localhost
 rabbit_port = 5672
 rabbit_virtual_host = /
-rabbit_task_queue = tasks
 rabbit_user = guest
-rabbit_password = guest
+rabbit_password = intel123
 
 #log_config_append = etc/logging.conf
-
 # Options for oslo.messaging
-#rpc_backend=rabbit
-
+rpc_backend=rabbit
 
 
 [api]
@@ -56,3 +53,19 @@ delay_auth_decision=true
 
 [plugins]
 plugin_config_file=plugins_config.yaml
+
+[action_executor]
+manager = healing.actionexecutor.manager.ActionManager
+topic = 'action_topic'
+notification_topic = 'info'
+workers = 2
+periodic_enable = False
+task_period = 60
+
+
+[action_tracker]
+manager = healing.tracker.manager.TrackerManager
+topics = notifications
+workers = 1
+periodic_enable = True
+task_period = 60

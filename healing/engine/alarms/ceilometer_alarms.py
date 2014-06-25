@@ -172,7 +172,7 @@ class CeilometerAlarm(alarm_base.AlarmBase):
             meter = meter or self.meter
             if not start_date:
                 delta_seconds = delta_seconds or (self.period * self.evaluation_period) 
-
+            LOG.debug('Ceilometer statistic')
             res = utils.get_ceilometer_statistics(client, meter=meter, period=period, 
                                                   query=query,
                                                   start_date=start_date, end_date=end_date,
@@ -189,7 +189,7 @@ class CeilometerAlarm(alarm_base.AlarmBase):
         pass
 
 
-class HostDownUniqueAlarm(CeilometerAlarm):
+class CeilometerUniqueAlarm(CeilometerAlarm):
 
     """ This kind of alarm is 'singleton'. We only associate different
         contract ids to same alarm.
@@ -201,12 +201,12 @@ class HostDownUniqueAlarm(CeilometerAlarm):
         Unique means the same alarm, even that there can be lot of
         AlarmTracks with the same id
     """
-    ALARM_TYPE = 'host_down_unique'
+    ALARM_TYPE = 'ceilometer_unique_alarm'
     unique_alarm_obj = None
 
     def __init__(self, **kwargs):
         self.unique_alarm_obj = None
-        super(HostDownUniqueAlarm, self).__init__(**kwargs)
+        super(CeilometerUniqueAlarm, self).__init__(**kwargs)
 
     def get_unique_alarm(self, refresh=False):
         if not self.unique_alarm_obj or refresh:
@@ -238,8 +238,8 @@ class HostDownUniqueAlarm(CeilometerAlarm):
         try:
 
             external_created = False
-            self.options.pop('project_id')
-            
+            self.options.pop('project_id', None)
+
             # TODO: if duplicated, raise or we expect the caller
             # to handle that?
             first_alarm = self._is_first_alarm()
@@ -254,10 +254,10 @@ class HostDownUniqueAlarm(CeilometerAlarm):
                 LOG.debug("Creating unique external alarm")
                 if not self.hooks.get(alarm_base.ALARM_HOOK):
                     self.set_default_alarm_hook()
-                super(HostDownUniqueAlarm, self).create()
+                super(CeilometerUniqueAlarm, self).create()
                 external_created = True
             else:
-                LOG.debug('Creaint oject only')
+                LOG.debug('Creating object only')
                 self.alarm_id = self.unique_alarm_obj.alarm_id
             self.alarm_track.save()
         except exceptions.ExternalAlarmAlreadyExists as e:
@@ -268,7 +268,7 @@ class HostDownUniqueAlarm(CeilometerAlarm):
             with excutils.save_and_reraise_exception():
                 self.alarm_track.delete()
                 if external_created:
-                    super(HostDownUniqueAlarm, self).delete()
+                    super(CeilometerUniqueAlarm, self).delete()
             raise exceptions.AlarmCreateOrUpdateException()
 
     def update(self):
@@ -278,7 +278,7 @@ class HostDownUniqueAlarm(CeilometerAlarm):
                                 "not already created - parent")
             if self._something_changed():
                 LOG.debug("The alarm changed, do the update now.")
-                super(HostDownUniqueAlarm, self).update()
+                super(CeilometerUniqueAlarm, self).update()
 
             self.alarm_track.save()
             return self.alarm_track
@@ -293,10 +293,18 @@ class HostDownUniqueAlarm(CeilometerAlarm):
 
             if not self.get_unique_alarm(refresh=True):
                 LOG.warning('Last AlarmTrack, removing ceilometer alarm')
-                super(HostDownUniqueAlarm, self).delete()
+                super(CeilometerUniqueAlarm, self).delete()
         except Exception as e:
             LOG.exception(e)
             raise exceptions.AlarmCreateOrUpdateException()
+
+
+class HostDownUniqueAlarm(CeilometerUniqueAlarm):
+    ALARM_TYPE = 'host_down_unique'
+
+
+class VmErrorUniqueAlarm(CeilometerUniqueAlarm):
+    ALARM_TYPE = 'vm_error_unique'
 
 
 class ResourceAlarm(CeilometerAlarm):
@@ -333,7 +341,8 @@ class ResourceAlarm(CeilometerAlarm):
             #TODO: check if this is needed
             #if self.options.get('project_id'):
             #    self.add_query('project_id', self.options.get('project_id'))
-            resource = self.options.get('resource_id', self.options.get('project_id'))
+            resource = self.options.get('resource_id',
+                                        self.options.get('project_id'))
             if resource:
                 self.add_query('resource_id', resource)
             # DO A WITH with autodelete if fail.. or move external_created
@@ -411,7 +420,7 @@ class ExternalResourceAlarm(CeilometerAlarm):
                 self.extra_alarm_data['resource_id'] = x.get('value')
                 return
         LOG.warning('missing resource_id in query, should be provided in contract')
-        
+
 
     def create(self):
         try:

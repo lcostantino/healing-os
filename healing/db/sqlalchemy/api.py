@@ -15,8 +15,8 @@
 
 import sys
 import sqlalchemy as sa
-
-from sqlalchemy.sql.expression import desc
+from sqlalchemy.sql import or_
+from sqlalchemy.sql.expression import desc, asc
 
 from healing import config
 from healing import exceptions as exc
@@ -148,10 +148,13 @@ def action_get_by_filter(filters, updated_time_gt=None, order='-created_at'):
     :param updated_time_gt: if set, will do updated_at > updated_time_gt
     """
     query = model_query(m.Action)
+    ignore_status = filters.pop('ignore_status', None)
     query = query.filter_by(**filters)
     if updated_time_gt:
         query = query.filter((m.Action.updated_at >= updated_time_gt) |
                              (m.Action.create_at >= updated_time_gt))
+    if ignore_status:
+        query = query.filter(m.Action.status != ignore_status)
     result = query.order_by(get_order(order)).first()
     if not result:
         raise exc.NotFoundException("action not found [filters=%s]" %
@@ -211,7 +214,6 @@ def sla_contract_create(values):
 
         return contract
 
-        
 def sla_contract_delete(sla_contract_id):
     session = get_session()
     with session.begin():
@@ -226,7 +228,6 @@ def sla_contract_get_all():
     query = model_query(m.SLAContract)
     return query.all()
 
-        
 ########################
 
 def alarm_track_create(values):
@@ -267,8 +268,8 @@ def alarm_track_delete(alarm_track_id):
                                         alarm_track_id)
 
 
-def alarm_track_get(alarm_track_id):
-    return _alarm_track_get(alarm_track_id)
+def alarm_track_get(alarm_track_id, multiple_records=False):
+    return _alarm_track_get(alarm_track_id, multiple_records)
 
 
 def alarm_tracks_get_all(filters=None, order='created_at'):
@@ -297,10 +298,42 @@ def alarm_track_get_by_filter(filters):
 
     return result
 
+
 #TODO: move exception to db/api.py? may be much better to abstract
-def _alarm_track_get(alarm_track_id):
+def _alarm_track_get(alarm_track_id, multiple_records=False):
     query = model_query(m.AlarmTrack)
-    obj = query.filter(m.AlarmTrack.id==alarm_track_id).first()
+    obj = query.filter((m.AlarmTrack.id==alarm_track_id)|
+                       (m.AlarmTrack.alarm_id==alarm_track_id))
+    if multiple_records:
+        obj = obj.all()
+    else:
+        obj = obj.first()
+
+    if not obj:
+        raise exc.NotFoundException()
+    return obj
+
+def alarms_by_contract_resource_project(meter, project=None, resource=None):
+    """ Retrieve ordered by priority.
+        The first one should be triggered. because is the best match.
+    """
+    contract_q = model_query(m.SLAContract).\
+                            filter( or_((m.SLAContract.project_id == project) &
+                                    (m.SLAContract.resource_id == resource)) |
+                                    or_((m.SLAContract.resource_id == None) &
+                                    (m.SLAContract.project_id == project)) |
+                                    or_((m.SLAContract.project_id == None) &
+                                        (m.SLAContract.resource_id == None))). \
+                            subquery()
+
+    query = model_query(m.AlarmTrack)
+    query = query.filter(m.AlarmTrack.meter==meter)
+
+    obj = query.join(contract_q, m.AlarmTrack.contract_id==contract_q.c.id)
+    obj = obj.order_by(desc(contract_q.c.resource_id))
+    obj = obj.order_by(desc(contract_q.c.project_id)).all()
+    
+    
     if not obj:
         raise exc.NotFoundException()
     return obj
@@ -311,9 +344,9 @@ def _alarm_track_get(alarm_track_id):
 def failure_track_get_all(start_date, end_date):
     query = model_query(m.FailureTrack)
     if start_date:
-        query = query.filter(m.FailureTrack.time >= start_date)
+        query = query.filter(m.FailureTrack.created_at >= start_date)
     if end_date:
-        query = query.filter(m.FailureTrack.time <= end_date)
+        query = query.filter(m.FailureTrack.created_at <= end_date)
 
     return query.all()
 

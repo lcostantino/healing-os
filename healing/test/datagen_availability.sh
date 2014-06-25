@@ -147,9 +147,9 @@ name4=name$RANDOM
 name5=name$RANDOM
 status=evacuate
 
-healing sla-tracking-create -time $first_host_down_date -alarm_id $alarm_id1
+healing sla-tracking-create -created_at $first_host_down_date -alarm_id $alarm_id1
 id1=$(healing sla-tracking-list | grep -m 2 '| .* |' | grep -o $uuid_pattern | awk '{ print $1 }' | grep -m 1 '.*')
-healing sla-tracking-create -time $second_host_down_date -alarm_id $alarm_id2
+healing sla-tracking-create -created_at $second_host_down_date -alarm_id $alarm_id2
 id2=$(healing sla-tracking-list | grep -m 2 '| .* |' | grep -o $uuid_pattern | awk '{ print $1 }' | grep -m 1 '.*')
 
 healing sla-actions-create -name $name1 -target_id $vm1_id -request_id $id1 -status $status

@@ -9,8 +9,9 @@ from healing.objects import fields
 class FailureTrack(base.HealingPersistentObject, base.HealingObject):
     VERSION = "1.0"
     fields = {'id': fields.StringField(),
-              'time': fields.DateTimeField(),
               'alarm_id': fields.StringField(),
+              #should use foreign later...
+              'contract_names': fields.StringField(nullable=True),
               'data': fields.StringField(nullable=True)}
 
     @staticmethod

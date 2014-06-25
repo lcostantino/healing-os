@@ -18,10 +18,8 @@ class ExternalScriptAlarm(alarm_base.AlarmBase):
     an script or an external monitor system to call it.
     """
     ALARM_TYPE = 'external_script_alarm'
-    hooks = {}
 
     def __init__(self, **kwargs):
-        self.unique_alarm_obj = None
         super(ExternalScriptAlarm, self).__init__(**kwargs)
 
     def create(self):
@@ -41,3 +39,5 @@ class ExternalScriptAlarm(alarm_base.AlarmBase):
             LOG.exception(e)
             raise exceptions.AlarmCreateOrUpdateException()
 
+class NotificationAlarm(ExternalScriptAlarm):
+    ALARM_TYPE = 'notification_alarm'

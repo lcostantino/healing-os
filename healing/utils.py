@@ -19,7 +19,8 @@ LOG = logging.getLogger(__name__)
 
 
 def build_context(username=None, password=None,
-                  headers=None, admin=True):
+                  headers=None, admin=True,
+                  authorize=True):
     """
     This is if we really want to get token first,
     but having user/pass can be used on clients
@@ -34,7 +35,9 @@ def build_context(username=None, password=None,
         password = config.CONF.keystone.admin_password
 
     ctx = context.Context(user=username, password=password)
-    get_auth_token(ctx, admin)
+    if authorize:
+        get_auth_token(ctx, admin)
+    
 
     return ctx
 

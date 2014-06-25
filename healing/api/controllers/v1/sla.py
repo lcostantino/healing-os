@@ -22,7 +22,9 @@ from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 from dateutil.parser import parse
 
+
 from healing import utils
+from healing.actionexecutor import rpcapi as action_api
 from healing.api.controllers import resource
 from healing.api.controllers.v1 import action
 from healing.engine.sla.manager import SLAContractEngine
@@ -49,6 +51,8 @@ class SLAContract(resource.Resource):
     action = wtypes.text
     resource_id = wtypes.text
     alarm_data = wtypes.text
+    action_options = wtypes.text
+    name = wtypes.text
 
 
 class SLAAlarm(resource.Resource):
@@ -64,10 +68,10 @@ class FailureTrack(resource.Resource):
     """Failure Track resource."""
 
     id = wtypes.text
-    time = wtypes.datetime.datetime
+    created_at = wtypes.datetime.datetime
     alarm_id = wtypes.text
     data = wtypes.text
-
+    contract_names = wtypes.text
 
 class SLAContracts(resource.Resource):
     """SLA contract resource list."""
@@ -121,6 +125,7 @@ class SLAAlarmingController(rest.RestController):
 
     def __init__(self):
         self.engine = SLAAlarmingEngine()
+        self.action_api = action_api.ActionAPI()
 
     @pecan.expose()
     def post(self):
@@ -134,6 +139,7 @@ class SLAAlarmingController(rest.RestController):
         source = pecan.request.GET.get('source')
         status = pecan.request.GET.get('status')
         contract_id = pecan.request.GET.get('contract_id')
+        resource_id = pecan.request.GET.get('resource_id')
         body = six.moves.urllib_parse.unquote_plus(pecan.request.body)
         if body and body[-1] == '=':
             body = body[:-1]
@@ -144,8 +150,9 @@ class SLAAlarmingController(rest.RestController):
             abort(400, 'Status and Source are required')
         alarm = jsonutils.loads(body)
         if status == 'alarm':
-            self.engine.alert(ctx, alarm.get('alarm_id'), source=source,
-                              contract_id=contract_id)
+            self.action_api.alarm(ctx, alarm.get('alarm_id'), source=source,
+                              contract_id=contract_id,
+                              resource_id=resource_id)
         return ""
 
 
@@ -161,7 +168,6 @@ class SLATrackingController(rest.RestController):
         failures = []
         if failure_dicts:
             failures = [FailureTrack.from_dict(obj) for obj in failure_dicts]
-
         return FailureTracks(failures=failures)
 
     @wsme_pecan.wsexpose(body=FailureTrack, status_code=201)

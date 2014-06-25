@@ -81,6 +81,6 @@ class SLAStatisticsEngine():
                 if action.target_id == resource_id:
                     unavailable_time += self.stats.resource_unavailability(
                                                                 resource_id,
-                                                                alarm['time'],
+                                                                alarm['created_at'],
                                                                 to_date)
         return unavailable_time

@@ -93,3 +93,18 @@ class AlarmCreateOrUpdateException(HealingException):
 class ExternalAlarmAlreadyExists(HealingException):
     message = "Duplicated alarm"
     code = 409
+
+class IncompatibleObjectVersion(HealingException):
+    message = "Incompatible object version"
+    code = 500
+    
+    def __init__(self, objname, objver, supported):
+        super(IncompatibleObjectVersion, self).__init__(message=self.message)
+
+class UnsupportedObjectError(HealingException):
+    message = "unsupported object"
+    code = 500
+    
+    def __init__(self, objname):
+        super(UnsupportedObjectError, self).__init__(message=self.message)
+

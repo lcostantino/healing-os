@@ -11,6 +11,8 @@ import copy
 import datetime
 import six
 
+from oslo import messaging
+
 from healing import objects
 from healing.objects import fields
 from healing.openstack.common import log as logging
@@ -123,6 +125,36 @@ class HealingObject(object):
         the wire for remote hydration.
         """
         return cls.__name__
+
+    @classmethod
+    def obj_class_from_name(cls, objname, objver):
+        """Returns a class from the registry based on a name and version."""
+        if objname not in cls._obj_classes:
+            LOG.error(_('Unable to instantiate unregistered object type '
+                        '%(objtype)s') % dict(objtype=objname))
+            raise exceptions.UnsupportedObjectError(objtype=objname)
+
+        # NOTE(comstud): If there's not an exact match, return the highest
+        # compatible version. The objects stored in the class are sorted
+        # such that highest version is first, so only set compatible_match
+        # once below.
+        compatible_match = None
+
+        for objclass in cls._obj_classes[objname]:
+            if objclass.VERSION == objver:
+                return objclass
+            if (not compatible_match and
+                    versionutils.is_compatible(objver, objclass.VERSION)):
+                compatible_match = objclass
+
+        if compatible_match:
+            return compatible_match
+
+        # As mentioned above, latest version is always first in the list.
+        latest_ver = cls._obj_classes[objname][0].VERSION
+        raise exceptions.IncompatibleObjectVersion(objname=objname,
+                                                   objver=objver,
+                                                   supported=latest_ver)
 
 
     def obj_clone(self):
@@ -237,9 +269,125 @@ class HealingObject(object):
             ret[x] = getattr(self, x, None)
         return ret
 
+    def obj_make_compatible(self, primitive, target_version):
+        """Make an object representation compatible with a target version.
+
+        This is responsible for taking the primitive representation of
+        an object and making it suitable for the given target_version.
+        This may mean converting the format of object attributes, removing
+        attributes that have been added since the target version, etc.
+
+        :param:primitive: The result of self.obj_to_primitive()
+        :param:target_version: The version string requested by the recipient
+                               of the object.
+        :param:raises: nova.exception.UnsupportedObjectError if conversion
+                       is not possible for some reason.
+        """
+        pass
+
+    def obj_to_primitive(self, target_version=None):
+        """Simple base-case dehydration.
+
+        This calls to_primitive() for each item in fields.
+        """
+        primitive = dict()
+        for name, field in self.fields.items():
+            if self.obj_attr_is_set(name):
+                primitive[name] = field.to_primitive(self, name,
+                                                     getattr(self, name))
+        if target_version:
+            self.obj_make_compatible(primitive, target_version)
+        obj = {'healing_object.name': self.obj_name(),
+               'healing_object.namespace': 'healing',
+               'healing_object.version': target_version or self.VERSION,
+               'healing_object.data': primitive}
+        if self.obj_what_changed():
+            obj['healing_object.changes'] = list(self.obj_what_changed())
+        return obj
+    
+    @classmethod
+    def _obj_from_primitive(cls, context, objver, primitive):
+        self = cls()
+        self._context = context
+        self.VERSION = objver
+        objdata = primitive['healing_object.data']
+        changes = primitive.get('healing_object.changes', [])
+        for name, field in self.fields.items():
+            if name in objdata:
+                setattr(self, name, field.from_primitive(self, name,
+                                                         objdata[name]))
+        self._changed_fields = set([x for x in changes if x in self.fields])
+        return self
+
+    @classmethod
+    def obj_from_primitive(cls, primitive, context=None):
+        """Object field-by-field hydration."""
+        if primitive['healing_object.namespace'] != 'healing':
+            # NOTE(danms): We don't do anything with this now, but it's
+            # there for "the future"
+            raise exception.UnsupportedObjectError(
+                objtype='%s.%s' % (primitive['nova_object.namespace'],
+                                   primitive['nova_object.name']))
+        objname = primitive['healing_object.name']
+        objver = primitive['healing_object.version']
+        objclass = cls.obj_class_from_name(objname, objver)
+        return objclass._obj_from_primitive(context, objver, primitive)
+
+
+
 class HealingPersistentObject(object):
     """Mixin class for Persistent objects.
     This adds the fields that we use in common for all persisent objects.
     """
     fields = {'created_at': fields.DateTimeField(nullable=True),
               'updated_at': fields.DateTimeField(nullable=True)}
+
+
+
+class HealingObjectSerializer(messaging.NoOpSerializer):
+    """A HealingObject-aware Serializer.
+
+    This implements the Oslo Serializer interface and provides the
+    ability to serialize and deserialize NovaObject entities. Any service
+    that needs to accept or return NovaObjects as arguments or result values
+    should pass this to its RPCClient and RPCServer objects.
+    """
+    def _process_object(self, context, objprim):
+        
+        objinst = HealingObject.obj_from_primitive(objprim, context=context)
+        return objinst
+
+    def _process_iterable(self, context, action_fn, values):
+        """Process an iterable, taking an action on each value.
+        :param:context: Request context
+        :param:action_fn: Action to take on each item in values
+        :param:values: Iterable container of things to take action on
+        :returns: A new container of the same type (except set) with
+                  items from values having had action applied.
+        """
+        iterable = values.__class__
+        if iterable == set:
+            # NOTE(danms): A set can't have an unhashable value inside, such as
+            # a dict. Convert sets to tuples, which is fine, since we can't
+            # send them over RPC anyway.
+            iterable = tuple
+        return iterable([action_fn(context, value) for value in values])
+
+    def serialize_entity(self, context, entity):
+        if isinstance(entity, (tuple, list, set)):
+            entity = self._process_iterable(context, self.serialize_entity,
+                                            entity)
+        elif (hasattr(entity, 'obj_to_primitive') and
+              callable(entity.obj_to_primitive)):
+            entity = entity.obj_to_primitive()
+        return entity
+
+    def deserialize_entity(self, context, entity):
+        if isinstance(entity, dict) and 'healing_object.name' in entity:
+            entity = self._process_object(context, entity)
+        elif isinstance(entity, (tuple, list, set)):
+            entity = self._process_iterable(context, self.deserialize_entity,
+                                            entity)
+        return entity
+
+

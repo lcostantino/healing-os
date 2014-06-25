@@ -2,31 +2,59 @@ from healing.handler_plugins import base
 
 from healing import exceptions
 from healing.openstack.common import log as logging
-from healing import utils
-
 
 LOG = logging.getLogger(__name__)
 
+
 class Mistral(base.HandlerPluginBase):
-    """evacuate VM plugin.
+    """Trigger mistral workflow.
 
     Data format in action_meta is:
-        'evacuate_host': True  if evacuating the entire host
+    {"workflow": "name", "task": "task", "params": {"admin_pass": "12123"}}
     """
     DESCRIPTION = "Run mistral workflow"
     NAME = "mistral"
 
-    def start(self, ctx, data):
-        pass
+    def start(self, ctx, action, block=False):
+        try:
+            import mistralclient.api.client as client
+            import mistralclient.api.executions as executions
+        except:
+            LOG.error("Mistral not installed")
+            return
 
+        if not self.can_execute(action):
+            self.register_action(action, discard=True)
+            raise exceptions.ActionInProgress()
 
-    def stop(self, data, error=False, message=None):
-        pass
+        self.register_action(action)
 
+        options = action.action_meta_obj.get('data') or {}
+        workflow = options.get('workflow', None)
+        task = options.get('task', None)
+        params = options.get('params', {})
+        if params.get('output'):
+            params['output'] = '%s [%s]' % (params['output'],
+                                            action.target_id)
+        else:
+            params['output'] = '[%s]' % action.target_id
 
-    def can_execute(self, data, ctx=None):
-        """
-        :param data ActionData Obj
-        move to parent?
-        """
-        return super(Mistral, self).can_execute(data, ctx=ctx)
+        params['request_id'] = action.request_id
+        params['instance_id'] = action.target_id
+        params['project'] = action.project_id 
+        
+        if not workflow or not task:
+            LOG.warning('required parameters missing for mistral')
+            self.stop(action, error=True)
+            return
+        try:
+            client = client.Client()
+            execute = executions.ExecutionManager(client)
+            output = execute.create(workflow, task, params)
+        except Exception as e:
+            LOG.exception(e)
+            self.error(action, message=str(e))
+            return None
+
+        self.finish(action, str(output))
+        return self.current_action.id
