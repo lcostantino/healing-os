@@ -180,6 +180,7 @@ class SLAStatisticsController(rest.RestController):
 
     def __init__(self):
         self.engine = SLAStatisticsEngine()
+        self.available_stats = ['availability', 'max_unavailable_period']
 
     @wsme_pecan.wsexpose(SLAStatistics, wtypes.text, wtypes.text, wtypes.text,
                          wtypes.text, wtypes.text, wtypes.text)
@@ -187,8 +188,10 @@ class SLAStatisticsController(rest.RestController):
             resource_id=None):
         ctx = utils.get_context_req(pecan.request)
 
-        if stat_type is None or not stat_type == 'availability':
-            raise ValueError('The only stat_type supported is availability')
+        if stat_type not in self.available_stats:
+            raise ValueError('Statistic type %(stat)s not in %(available)s' ,
+                             {'stat': stat_type,
+                              'available': str(self.available_stats)})
 
         try:
             start_date = parse(from_date)
@@ -196,11 +199,11 @@ class SLAStatisticsController(rest.RestController):
         except Exception as e:
             raise ValueError('Dates should be UTC format')
 
-        stat = self.engine.get_availability(ctx,
-                                            project_id=project_id,
-                                            start_date=start_date,
-                                            end_date=end_date,
-                                            resource_id=resource_id)
+        stat = self.engine.get_statistics(stat_type, ctx=ctx,
+                                          project_id=project_id,
+                                          start_date=start_date,
+                                          end_date=end_date,
+                                          resource_id=resource_id)
 
         return SLAStatistics.from_dict(dict(type=stat_type, value=str(stat)))
 

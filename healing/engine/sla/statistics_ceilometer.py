@@ -58,12 +58,19 @@ class CeilometerStatistics():
     def resource_unavailability(self, resource_id, start_time, to_time):
         min_time = to_time.replace(tzinfo=None)
         from_time = start_time.replace(tzinfo=None)
+        print('##first min_time: %s' % str(min_time))
+        print('##first from_time: %s' % str(from_time))
         for stat in self.cpu_stats:
             period_start = parse(stat.period_start).replace(tzinfo=None)
+            print('##period_start: %s' % str(period_start))
             if from_time < period_start < min_time and int(stat.min) > 0 and \
                             stat.groupby['resource_id'] == resource_id:
                 min_time = period_start
+            print('##min_time: %s' % str(min_time))
 
+
+        print('##final min_time: %s' % str(min_time))
+        print('##final from_time: %s' % str(from_time))
         return (min_time - from_time).seconds
 
     def _get_statistics(self, ctx, meter, start_date, end_date, project_id,
