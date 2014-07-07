@@ -43,6 +43,7 @@ class NotFoundException(HealingException):
     message = "Object not found"
     code = 400
 
+
 class InvalidSourceException(HealingException):
     message = "Source formatter invalid"
 
@@ -65,9 +66,9 @@ class InvalidDataException(HealingException):
     message = "Invalid action data"
     code = 400
 
+
 class AuthorizationException(HealingException):
     message = "Invalid credentials / token"
-
 
 
 class ActionInProgress(HealingException):
@@ -87,6 +88,7 @@ class CannotStartPlugin(HealingException):
 class AlarmCreateOrUpdateException(HealingException):
     message = "Error creating/updating alarms"
     code = "ALARM_CREATE_UPDATE_ERROR"
+
 
 class ExternalAlarmAlreadyExists(HealingException):
     message = "Duplicated alarm"

@@ -185,7 +185,7 @@ def build_ceilometer_query(field, operator, value, field_type=''):
             'type': field_type}
 
 
-def get_nova_vms(client, tenant_id=None, host=None):
+def get_nova_vms(client, tenant_id=None, host=None, vms_id=None):
     res_by_tenant_id = {}
     search_opts = {}
     if not tenant_id:
@@ -198,6 +198,8 @@ def get_nova_vms(client, tenant_id=None, host=None):
     res = client.servers.list(search_opts=search_opts)
     if res:
         for x in res:
+            if vms_id and x.id not in vms_id:
+                continue
             if not res_by_tenant_id.get(x.tenant_id):
                 res_by_tenant_id[x.tenant_id] = []
             res_by_tenant_id[x.tenant_id].append({'id': x.id,
@@ -205,9 +207,6 @@ def get_nova_vms(client, tenant_id=None, host=None):
                                 'power_state': getattr(x, 'OS-EXT-STS:power_state'),
                                 'name': x.name})
     return res_by_tenant_id
-
-    pass
-
 
 _CACHE_TIME = 2 * 60
 _CACHE = None
@@ -237,7 +236,13 @@ def get_cache_value(resource, resource_type='host', penalize=False,
         LOG.warning("Penalize resource %s", key)
     return value
 
+
 def reset_cache():
     global _CACHE
     _CACHE = None
 
+
+def validate_not_empty(**kwargs):
+    for name, value in kwargs.iteritems():
+        if value is None or (isinstance(value, str) and len(value) == 0):
+            raise TypeError("%s cannot be None" % name)

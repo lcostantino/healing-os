@@ -150,8 +150,8 @@ def alarms_by_contract_resource_project(meter, project=None, resource=None):
 
 ###SLA_CONTRACT###
 
-def failure_track_get_all():
-    return IMPL.failure_track_get_all()
+def failure_track_get_all(start_date, end_date):
+    return IMPL.failure_track_get_all(start_date, end_date)
 
 
 def failure_track_create(values):

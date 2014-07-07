@@ -78,6 +78,11 @@ action_opts = [
 
 db_opts = []
 
+engine_opts = [
+    cfg.StrOpt('statistics_class',
+               default="healing.engine.sla.statistics_ceilometer.CeilometerStatistics",
+               help="Statistics class"),
+]
 
 CONF = cfg.CONF
 
@@ -91,6 +96,7 @@ CONF.register_opts(action_tracker_opts, group='action_tracker')
 CONF.register_opts(action_opts)
 CONF.register_cli_opts([cfg.StrOpt('server', default='api',
                         help='for launch.py')])
+CONF.register_opts(engine_opts, group='engine')
 
 CONF.import_opt('verbose', 'healing.openstack.common.log')
 CONF.import_opt('debug', 'healing.openstack.common.log')

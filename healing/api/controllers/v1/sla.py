@@ -20,6 +20,7 @@ from pecan import rest
 import six
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
+from dateutil.parser import parse
 
 
 from healing import utils
@@ -28,11 +29,17 @@ from healing.api.controllers import resource
 from healing.api.controllers.v1 import action
 from healing.engine.sla.manager import SLAContractEngine
 from healing.engine.sla.manager import SLAAlarmingEngine
+from healing.engine.sla.statistics import SLAStatisticsEngine
 from healing.openstack.common import jsonutils
 from healing.openstack.common import log as logging
+from healing.objects.failure_track import FailureTrack as FailureTrackObj
 
 LOG = logging.getLogger(__name__)
 
+
+class SLAStatistics(resource.Resource):
+    type = wtypes.text
+    value = wtypes.text
 
 class SLAContract(resource.Resource):
     """SLA contract resource."""
@@ -157,8 +164,48 @@ class SLATrackingController(rest.RestController):
     @wsme_pecan.wsexpose(FailureTracks)
     def get_all(self):
         failure_dicts = self.engine.track_failure_get_all()
-        failures = [FailureTrack.from_dict(obj) for obj in failure_dicts]
+
+        failures = []
+        if failure_dicts:
+            failures = [FailureTrack.from_dict(obj) for obj in failure_dicts]
         return FailureTracks(failures=failures)
+
+    @wsme_pecan.wsexpose(FailureTrack, body=FailureTrack, status_code=201)
+    def post(self, failure):
+        fail = FailureTrackObj.from_dict(failure.to_dict())
+        fail.create()
+        return FailureTrack.from_dict(fail.to_dict())
+
+class SLAStatisticsController(rest.RestController):
+
+    def __init__(self):
+        self.engine = SLAStatisticsEngine()
+        self.available_stats = ['availability', 'max_unavailable_period']
+
+    @wsme_pecan.wsexpose(SLAStatistics, wtypes.text, wtypes.text, wtypes.text,
+                         wtypes.text, wtypes.text, wtypes.text)
+    def get(self, stat_type=None, from_date=None, to_date=None, project_id=None,
+            resource_id=None):
+        ctx = utils.get_context_req(pecan.request)
+
+        if stat_type not in self.available_stats:
+            raise ValueError('Statistic type %(stat)s not in %(available)s' ,
+                             {'stat': stat_type,
+                              'available': str(self.available_stats)})
+
+        try:
+            start_date = parse(from_date)
+            end_date = parse(to_date)
+        except Exception as e:
+            raise ValueError('Dates should be UTC format')
+
+        stat = self.engine.get_statistics(stat_type, ctx=ctx,
+                                          project_id=project_id,
+                                          start_date=start_date,
+                                          end_date=end_date,
+                                          resource_id=resource_id)
+
+        return SLAStatistics.from_dict(dict(type=stat_type, value=str(stat)))
 
 
 class SLAController(rest.RestController):
@@ -167,3 +214,4 @@ class SLAController(rest.RestController):
     alarming = SLAAlarmingController()
     tracking = SLATrackingController()
     actions = action.ActionsController()
+    statistics = SLAStatisticsController()
