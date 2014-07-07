@@ -88,8 +88,8 @@ class CeilometerAlarm(alarm_base.AlarmBase):
             fields['statistic'] = self.statistic
         if self.evaluation_period:
             fields['evaluation_period'] = self.evaluation_period
-        #if project:
-        #    fields['project_id'] = project
+        if project:
+            fields['project_id'] = project
         fields.update(self.hooks)
         if self.query:
             # TODO: build query base on ceilometer expectation
@@ -203,7 +203,7 @@ class CeilometerUniqueAlarm(CeilometerAlarm):
     """
     ALARM_TYPE = 'ceilometer_unique_alarm'
     unique_alarm_obj = None
-
+        
     def __init__(self, **kwargs):
         self.unique_alarm_obj = None
         super(CeilometerUniqueAlarm, self).__init__(**kwargs)
@@ -249,7 +249,7 @@ class CeilometerUniqueAlarm(CeilometerAlarm):
             # other way would be to use random, or use
             # some id . but they can be created outside
             # we may use contract id only if it 1<->1
-
+            
             if first_alarm:
                 LOG.debug("Creating unique external alarm")
                 if not self.hooks.get(alarm_base.ALARM_HOOK):

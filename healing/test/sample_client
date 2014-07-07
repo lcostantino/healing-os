@@ -16,3 +16,10 @@ sla-contract-create RESOURCE 1 evacuate -resource_id fa730e84-3c31-4902-8731-6ff
 
 # sla-contract-create -action_options '{"workflow":"PostInstance2", "task":"post-instance-check", "params": {"admin_email": "lcostantino@gmail.com", "project": "localhost", "instance_id":"salida"}}' NOTIFICATION_ALARM 1 mistral  -alarm_data '{"meter": "compute.instance.unpause.end"}'
 
+
+#### HORIZON
+Notification
+#  {"workflow":"PostInstance2", "task":"post-instance-check", "params": {"admin_email": "lcostantino@gmail.com"}}
+
+
+

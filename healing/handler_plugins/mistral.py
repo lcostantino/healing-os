@@ -2,6 +2,7 @@ from healing.handler_plugins import base
 
 from healing import exceptions
 from healing.openstack.common import log as logging
+from healing import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -14,7 +15,14 @@ class Mistral(base.HandlerPluginBase):
     """
     DESCRIPTION = "Run mistral workflow"
     NAME = "mistral"
-
+    
+    def _common_endpoints(self, ctx): 
+        nova_url = utils.get_endpoint_url(ctx, 'compute')
+        # remove project. should use urllib better..
+        nova_url = "/".join(nova_url.split("/")[:-1])
+        return {'nova_url': nova_url}
+        
+        
     def start(self, ctx, action, block=False):
         try:
             import mistralclient.api.client as client
@@ -38,17 +46,22 @@ class Mistral(base.HandlerPluginBase):
                                             action.target_id)
         else:
             params['output'] = '[%s]' % action.target_id
-
+            
         params['request_id'] = action.request_id
-        params['instance_id'] = action.target_id
-        params['project'] = action.project_id 
+        
+        if not params.get('instance_id'):
+            params['instance_id'] = action.target_id
+        if not params.get('project'):
+            params['project'] = action.project_id
+            
+        params.update(self._common_endpoints(ctx))
         
         if not workflow or not task:
             LOG.warning('required parameters missing for mistral')
             self.stop(action, error=True)
             return
         try:
-            client = client.Client()
+            client = client.Client(auth_token=ctx.token)
             execute = executions.ExecutionManager(client)
             output = execute.create(workflow, task, params)
         except Exception as e:
