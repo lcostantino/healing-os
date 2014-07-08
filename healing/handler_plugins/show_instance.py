@@ -29,7 +29,7 @@ class InstanceShow(base.HandlerPluginBase):
             LOG.exception(e)
             self.error(action, message=e.message)
             return None
-        self.finish(action, output)
+        self.finish(action, str(output))
             
     def can_execute(self, action, ctx=None):
         return super(InstanceShow, self).can_execute(action, ctx=ctx)
