@@ -14,6 +14,9 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import thread
+from datetime import datetime, timedelta
+
 from healing.openstack.common import jsonutils
 from healing.openstack.common import log as logging
 from healing import exceptions as exc
@@ -27,6 +30,8 @@ from healing.objects.failure_track import FailureTrack as failure_track
 from healing.objects.alarm_track import AlarmTrack
 from healing.objects.action import Action
 from healing import utils
+
+from apscheduler.scheduler import Scheduler
 
 LOG = logging.getLogger(__name__)
 
@@ -204,6 +209,10 @@ class SLAContractEngine():
 
 class SLAAlarmingEngine():
 
+    def __init__(self):
+        self.sched = Scheduler()
+        self.sched.start()
+
     def _record_action(self, name, data, request_id, target_resource, project_id=None):
         try:
             act = Action.from_data(name=name,
@@ -343,14 +352,37 @@ class SLAAlarmingEngine():
             LOG.exception(e)
             return
 
+        not_scheduled_contracts = []
+        for contract in contracts:
+            if contract.type == 'MAX_VM_DOWNTIME':
+                self.prepare_scheduled_actions(ctx, contract, failure_id, vms_by_tenant)
+            else:
+                not_scheduled_contracts.append(contract)
+
         actions = self._get_actions_for_contracts(failure_id, vms_by_tenant,
-                                                  contracts)
+                                                  not_scheduled_contracts)
 
         for x in resources:
             utils.set_cache_value(x)
 
         if actions:
             handler_manager().start_plugins_group(ctx, actions, block=True)
+
+
+    def prepare_scheduled_actions(self, ctx, contract, failure_id, vms_by_tenant):
+
+        if not isinstance(contract.value, int):
+            raise ValueError('Contract value has to be int when the type is '
+                             'MAX_VM_DOWNTIME')
+
+        actions = self._get_actions_for_contracts(failure_id, vms_by_tenant,
+                                                  (contract, ))
+
+        if actions:
+            self.sched.add_date_job(handler_manager().start_plugins_group,
+                                datetime.now() + timedelta(seconds=contract.value),
+                                args=[ctx, actions], kwargs=dict(block=True))
+
 
     def _process_host_down_alarm(self, ctx, alarm, contracts, source,
                                  resource_id=None):
