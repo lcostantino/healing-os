@@ -57,6 +57,12 @@ SLA_TYPES = {'HOST_DOWN': {'alarm': cel_alarms.HostDownUniqueAlarm.ALARM_TYPE,
                         'alarm': generic_alarms.NotificationAlarm.ALARM_TYPE,
                         'override': True,
                         'options': None},
+             'MAX_VM_DOWNTIME': {'alarm': cel_alarms.VmErrorUniqueAlarm.ALARM_TYPE,
+                           'options': {'meter': 'services.vm.error',
+                                       'operator': 'eq',
+                                       'threshold': 1,
+                                       'repeat': True},
+                           'override': False},
         }
 
 
